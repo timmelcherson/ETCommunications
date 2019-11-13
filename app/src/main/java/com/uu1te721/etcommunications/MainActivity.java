@@ -5,23 +5,29 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
 
 import com.linroid.filtermenu.library.FilterMenu;
 import com.linroid.filtermenu.library.FilterMenuLayout;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     private FilterMenuLayout mLayout;
+    private Button mSendButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mLayout = (FilterMenuLayout) findViewById(R.id.filter_menu);
+        // mLayout = (FilterMenuLayout) findViewById(R.id.filter_menu);
 
-        buildFilterMenu();
+         // buildFilterMenu();
+
+        mSendButton = findViewById(R.id.send_message_btn);
+
+        mSendButton.setOnClickListener(this);
     }
 
     @Override
@@ -30,7 +36,27 @@ public class MainActivity extends AppCompatActivity {
         mLayout.setVisibility(View.VISIBLE);
     }
 
-    private void buildFilterMenu() {
+    @Override
+    public void onClick(View v) {
+
+        switch (v.getId()) {
+
+            case R.id.send_message_btn:
+                sendMessage();
+            break;
+
+            default:
+                return;
+        }
+    }
+
+
+    private void sendMessage() {
+
+    }
+
+
+    /*private void buildFilterMenu() {
         final FilterMenu menu = new FilterMenu.Builder(this)
                 .inflate(R.menu.filter_menu_items)//inflate  menu resource
                 .attach(mLayout)
@@ -55,5 +81,5 @@ public class MainActivity extends AppCompatActivity {
                     public void onMenuExpand() {}
                 })
                 .build();
-    }
+    }*/
 }
