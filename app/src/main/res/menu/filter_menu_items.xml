@@ -4,10 +4,10 @@
     <item
         android:id="@+id/pick_image"
         android:icon="@drawable/ic_call"
-        android:title="Gall" />
+        android:title="Call" />
 
     <item
         android:id="@+id/add_something"
         android:icon="@drawable/ic_textsms"
-        android:title="Camera" />
+        android:title="Send Message" />
 </menu>
