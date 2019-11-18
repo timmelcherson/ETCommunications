@@ -6,28 +6,31 @@
     android:layout_height="match_parent"
     tools:context=".SendMessageActivity">
 
-    <include layout="@layout/toolbar" android:id="@+id/toolbar" />
+    <include
+        android:id="@+id/toolbar"
+        layout="@layout/toolbar" />
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <ScrollView
         android:id="@+id/message_feed_layout"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        app:layout_constraintTop_toBottomOf="@+id/toolbar"
         android:background="#CFCCAA"
-        app:layout_constraintBottom_toTopOf="@+id/feed_action_divider">
+        app:layout_constraintBottom_toTopOf="@+id/feed_action_divider"
+        app:layout_constraintTop_toBottomOf="@+id/toolbar">
 
         <TextView
             android:id="@+id/written_msg_tv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            android:background="#7777FF"
+            android:maxWidth="150dp"
+            android:padding="4dp"
             android:text="Written Message"
             android:textColor="#FFF"
-            android:background="#7777FF"
-            android:layout_margin="16dp"
-            android:padding="4dp"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"/>
-    </androidx.constraintlayout.widget.ConstraintLayout>
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+    </ScrollView>
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/feed_action_divider"
@@ -40,8 +43,8 @@
         android:id="@+id/message_actions_layout"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        app:layout_constraintTop_toBottomOf="@+id/feed_action_divider"
-        app:layout_constraintBottom_toBottomOf="parent">
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/feed_action_divider">
 
         <EditText
             android:id="@+id/write_message_et"
@@ -57,21 +60,21 @@
             android:id="@+id/send_message_btn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Send"
             android:layout_margin="4dp"
-            app:layout_constraintTop_toTopOf="parent"
+            android:text="Send"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"/>
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <Button
             android:id="@+id/begin_btn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="begin"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
             android:layout_margin="4dp"
-            app:layout_constraintEnd_toStartOf="@+id/send_message_btn"/>
+            android:text="begin"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/send_message_btn"
+            app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

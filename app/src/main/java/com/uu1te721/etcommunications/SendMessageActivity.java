@@ -23,8 +23,9 @@ import com.felhr.usbserial.UsbSerialDevice;
 import com.felhr.usbserial.UsbSerialInterface;
 
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.Map;
 
 public class SendMessageActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -57,6 +58,16 @@ public class SendMessageActivity extends AppCompatActivity implements View.OnCli
         mSendBtn = findViewById(R.id.send_message_btn);
         mBeginBtn = findViewById(R.id.begin_btn);
         mWriteMessageEt = findViewById(R.id.write_message_et);
+        mWrittenMsg = findViewById(R.id.written_msg_tv);
+
+
+        usbManager = (UsbManager) getSystemService(MainActivity.USB_SERVICE);
+        setUiEnabled(false);
+
+        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+        registerReceiver(usbReceiver, filter);
 
         mSendBtn.setOnClickListener(this);
         mBeginBtn.setOnClickListener(this);
@@ -79,62 +90,39 @@ public class SendMessageActivity extends AppCompatActivity implements View.OnCli
 
     private void sendMessage() {
         String msg = mWriteMessageEt.getText().toString();
-        Toast.makeText(this, "hej in bytes: " + "hej".getBytes(), Toast.LENGTH_SHORT).show();
-
-        serialPort.write("hej".getBytes());
+        serialPort.write(msg.getBytes());
+        tvAppend(mWrittenMsg, msg);
     }
 
     public void findUsbDevices() {
 
-        Toast.makeText(this, "FindUsbDevices", Toast.LENGTH_SHORT).show();
-
-        usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-
         HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
-        Iterator<UsbDevice> deviceIterator = deviceList.values().iterator();
 
-        while (deviceIterator.hasNext()) {
+        if (!deviceList.isEmpty()) {
 
-            device = deviceIterator.next();
+            boolean keep = true;
 
-            PendingIntent permissionIntent = PendingIntent.getBroadcast(this, 0, new
-                    Intent(ACTION_USB_PERMISSION), 0);
+            for (Map.Entry<String, UsbDevice> item : deviceList.entrySet()) {
 
-            usbManager.requestPermission(device, permissionIntent);
+                device = item.getValue();
 
-            IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
-            registerReceiver(usbReceiver, filter);
+                if (device.getVendorId() == 9025){
+                    Toast.makeText(this, "Arduino connected", Toast.LENGTH_SHORT).show();
+                    PendingIntent permissionIntent = PendingIntent.getBroadcast(this, 0, new
+                            Intent(ACTION_USB_PERMISSION), 0);
+                    usbManager.requestPermission(device, permissionIntent);
+                    keep = false;
+                }
+                else {
+                    connection = null;
+                    device = null;
+                }
 
-            String model = device.getDeviceName();
-
-            int deviceID = device.getDeviceId();
-            int vendorId = device.getVendorId();
-            int productId = device.getProductId();
-            int deviceClass = device.getDeviceClass();
-            int deviceSubclass = device.getDeviceSubclass();
+                if (!keep) {
+                    break;
+                }
+            }
         }
-//        UsbManager usbManager = new UsbManager();
-//        HashMap<String, UsbDevice> usbDevices = usbManager.getDeviceList();
-//        if (!usbDevices.isEmpty()) {
-//            boolean keep = true;
-//            for (Map.Entry<String, UsbDevice> entry : usbDevices.entrySet()) {
-//                device = entry.getValue();
-//                int deviceVID = device.getVendorId();
-//                if (deviceVID == 0x2341)//Arduino Vendor ID
-//                {
-//                    PendingIntent pi = PendingIntent.getBroadcast(this, 0,
-//                            new Intent(ACTION_USB_PERMISSION), 0);
-//                    usbManager.requestPermission(device, pi);
-//                    keep = false;
-//                } else {
-//                    connection = null;
-//                    device = null;
-//                }
-//
-//                if (!keep)
-//                    break;
-//            }
-//        }
     }
 
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
@@ -145,54 +133,67 @@ public class SendMessageActivity extends AppCompatActivity implements View.OnCli
             Toast.makeText(context, "usbReceiver", Toast.LENGTH_SHORT).show();
             if (intent.getAction().equals(ACTION_USB_PERMISSION)) {
 
-                synchronized (this) {
-                    device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
 
-                    if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
-                        if (device != null) {
+                if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
+                    if (device != null) {
 
-                            boolean granted = intent.getExtras().getBoolean(UsbManager.EXTRA_PERMISSION_GRANTED);
+                        boolean granted = intent.getExtras().getBoolean(UsbManager.EXTRA_PERMISSION_GRANTED);
 
-                            if (granted) {
-                                connection = usbManager.openDevice(device);
-                                serialPort = UsbSerialDevice.createUsbSerialDevice(device, connection);
+                        if (granted) {
+                            connection = usbManager.openDevice(device);
+                            serialPort = UsbSerialDevice.createUsbSerialDevice(device, connection);
 
-                                if (serialPort != null) {
-                                    if (serialPort.open()) {
-//                                        setUiEnabled(true); //Enable Buttons in UI
-                                        serialPort.setBaudRate(9600);
-                                        serialPort.setDataBits(UsbSerialInterface.DATA_BITS_8);
-                                        serialPort.setStopBits(UsbSerialInterface.STOP_BITS_1);
-                                        serialPort.setParity(UsbSerialInterface.PARITY_NONE);
-                                        serialPort.setFlowControl(UsbSerialInterface.FLOW_CONTROL_OFF);
+                            if (serialPort != null) {
+                                if (serialPort.open()) {
+                                    Log.d(TAG, "onReceive: setting Ui TRUE");
+                                    setUiEnabled(true); //Enable Buttons in UI
+                                    serialPort.setBaudRate(9600);
+                                    serialPort.setDataBits(UsbSerialInterface.DATA_BITS_8);
+                                    serialPort.setStopBits(UsbSerialInterface.STOP_BITS_1);
+                                    serialPort.setParity(UsbSerialInterface.PARITY_NONE);
+                                    serialPort.setFlowControl(UsbSerialInterface.FLOW_CONTROL_OFF);
+
+                                    try {
                                         serialPort.read(mCallback);
-                                        tvAppend(mWrittenMsg, "Serial Connection Opened");
-                                        Toast.makeText(context, "Serial Connection Opened!\n", Toast.LENGTH_SHORT).show();
-
-                                    } else {
-                                        Log.d("SERIAL", "PORT NOT OPEN");
+                                        Log.d(TAG, "Successfully read serialport");
+                                    } catch (Exception e) {
+                                        Log.e(TAG, "Error in reading serialport: " + e);
                                     }
+
+                                    tvAppend(mWrittenMsg, "Serial Connection Opened");
+                                    Toast.makeText(context, "Serial Connection Opened!\n", Toast.LENGTH_SHORT).show();
+
+                                } else {
+                                    Log.d("SERIAL", "PORT NOT OPEN");
                                 }
+                            } else {
+                                Log.d("SERIAL", "PORT IS NULL");
                             }
+                        } else {
+                            Log.d(TAG, "permission denied for device " + device);
                         }
-                    } else {
-                        Log.d(TAG, "permission denied for device " + device);
                     }
+                } else {
+                    Log.d("SERIAL", "PERM NOT GRANTED");
                 }
-//                    } else {
-//                        Log.d("SERIAL", "PORT IS NULL");
-//                    }
-//                } else {
-//                    Log.d("SERIAL", "PERM NOT GRANTED");
-//                }
+
             }
-//            else if (intent.getAction().equals(UsbManager.ACTION_USB_DEVICE_ATTACHED)) {
-//                onClickStart(startButton);
-//            } else if (intent.getAction().equals(UsbManager.ACTION_USB_DEVICE_DETACHED)) {
+            else if (intent.getAction().equals(UsbManager.ACTION_USB_DEVICE_ATTACHED)) {
+                findUsbDevices();
+            }
+//            else if (intent.getAction().equals(UsbManager.ACTION_USB_DEVICE_DETACHED)) {
 //                onClickStop(stopButton);
 //            }
+            else if (intent.getAction().equals(UsbManager.))
         }
     };
+
+    private void setUiEnabled(boolean isEnabled) {
+        mBeginBtn.setEnabled(!isEnabled);
+        mSendBtn.setEnabled(isEnabled);
+        mWrittenMsg.setEnabled(isEnabled);
+    }
 
     UsbSerialInterface.UsbReadCallback mCallback = new UsbSerialInterface.UsbReadCallback() {
 
@@ -202,7 +203,7 @@ public class SendMessageActivity extends AppCompatActivity implements View.OnCli
             String data = null;
             try {
                 data = new String(arg0, "UTF-8");
-                data.concat("/n");
+                data.concat("\n");
                 tvAppend(mWrittenMsg, data);
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
@@ -211,7 +212,9 @@ public class SendMessageActivity extends AppCompatActivity implements View.OnCli
     };
 
     private void tvAppend(TextView tv, CharSequence text) {
-        runOnUiThread(() -> tv.append(text));
+        final TextView ftv = tv;
+        final CharSequence ftext = text;
+        runOnUiThread(() ->ftv.append(ftext));
     }
 
     @Override
