@@ -16,6 +16,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -23,7 +24,7 @@ import com.felhr.usbserial.UsbSerialDevice;
 import com.felhr.usbserial.UsbSerialInterface;
 
 import java.io.UnsupportedEncodingException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,14 +33,18 @@ public class SendMessageActivity extends AppCompatActivity implements View.OnCli
     private Button mSendBtn, mBeginBtn;
     private EditText mWriteMessageEt;
     private TextView mWrittenMsg;
+    private ScrollView mMessageFeed;
 
     private UsbDeviceConnection connection;
     private UsbDevice device;
     private UsbManager usbManager;
     private UsbSerialDevice serialPort;
 
+    private ArrayList<String> mMessageList = new ArrayList<>();
+
     public static final String TAG = "TAG";
     private static final String ACTION_USB_PERMISSION = "com.uu1te721.etcommunications.USB_PERMISSION";
+    private static final String ACTION_USB_NOT_SUPPORTED = "com.uu1te721.etcommunications.USB_NOT_SUPPORTED";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +64,7 @@ public class SendMessageActivity extends AppCompatActivity implements View.OnCli
         mBeginBtn = findViewById(R.id.begin_btn);
         mWriteMessageEt = findViewById(R.id.write_message_et);
         mWrittenMsg = findViewById(R.id.written_msg_tv);
+        mMessageFeed = findViewById(R.id.message_feed_layout);
 
 
         usbManager = (UsbManager) getSystemService(MainActivity.USB_SERVICE);
@@ -67,6 +73,8 @@ public class SendMessageActivity extends AppCompatActivity implements View.OnCli
         IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
         filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
         filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+        filter.addAction(ACTION_USB_NOT_SUPPORTED);
         registerReceiver(usbReceiver, filter);
 
         mSendBtn.setOnClickListener(this);
@@ -106,14 +114,13 @@ public class SendMessageActivity extends AppCompatActivity implements View.OnCli
 
                 device = item.getValue();
 
-                if (device.getVendorId() == 9025){
+                if (device.getVendorId() == 9025) {
                     Toast.makeText(this, "Arduino connected", Toast.LENGTH_SHORT).show();
                     PendingIntent permissionIntent = PendingIntent.getBroadcast(this, 0, new
                             Intent(ACTION_USB_PERMISSION), 0);
                     usbManager.requestPermission(device, permissionIntent);
                     keep = false;
-                }
-                else {
+                } else {
                     connection = null;
                     device = null;
                 }
@@ -178,14 +185,16 @@ public class SendMessageActivity extends AppCompatActivity implements View.OnCli
                     Log.d("SERIAL", "PERM NOT GRANTED");
                 }
 
-            }
-            else if (intent.getAction().equals(UsbManager.ACTION_USB_DEVICE_ATTACHED)) {
+            } else if (intent.getAction().equals(UsbManager.ACTION_USB_DEVICE_ATTACHED)) {
                 findUsbDevices();
             }
 //            else if (intent.getAction().equals(UsbManager.ACTION_USB_DEVICE_DETACHED)) {
 //                onClickStop(stopButton);
 //            }
-            else if (intent.getAction().equals(UsbManager.))
+            else if (intent.getAction().equals(ACTION_USB_NOT_SUPPORTED)) {
+                Intent newIntent = new Intent(ACTION_USB_NOT_SUPPORTED);
+                context.sendBroadcast(newIntent);
+            }
         }
     };
 
@@ -211,10 +220,20 @@ public class SendMessageActivity extends AppCompatActivity implements View.OnCli
         }
     };
 
+    private void appendReceivedMessage(String msg) {
+        ReceivedMessageCard msgCard = new ReceivedMessageCard(msg);
+        mMessageList.add(msg);
+    }
+
+    private void appendSentMessage(String msg) {
+        ReceivedMessageCard msgCard = new ReceivedMessageCard(msg);
+        mMessageList.add(msg);
+    }
+
     private void tvAppend(TextView tv, CharSequence text) {
         final TextView ftv = tv;
         final CharSequence ftext = text;
-        runOnUiThread(() ->ftv.append(ftext));
+        runOnUiThread(() -> ftv.append(ftext));
     }
 
     @Override

@@ -34,4 +34,5 @@ dependencies {
     implementation 'com.linroid.filtermenu:library:0.2.+@aar'
 
     implementation 'com.github.felHR85:UsbSerial:6.1.0'
+    implementation 'androidx.cardview:cardview:1.0.0'
 }
