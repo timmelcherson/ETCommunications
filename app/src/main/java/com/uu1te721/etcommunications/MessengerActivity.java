@@ -288,14 +288,14 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 //    }
 
     private void receiveMessage(String msg) {
-        final CharSequence finalMsg = msg;
 
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (msg != null || !msg.equals(""))
-                mMessageCardList.get(mCurrentMsgCardPos).setText(mMessageCardList.get(mCurrentMsgCardPos).getText() + msg);
-                mMessengerAdapter.notifyDataSetChanged();
+                if (msg != null || msg == "") {
+                    mMessageCardList.get(mCurrentMsgCardPos).setText(mMessageCardList.get(mCurrentMsgCardPos).getText() + msg);
+                    mMessengerAdapter.notifyDataSetChanged();
+                }
             }
         });
         lm.smoothScrollToPosition(mMessageFeed, null, mMessageCardList.size() - 1);
