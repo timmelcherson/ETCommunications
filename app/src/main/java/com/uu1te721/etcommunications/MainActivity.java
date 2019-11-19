@@ -2,33 +2,14 @@ package com.uu1te721.etcommunications;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.app.PendingIntent;
-import android.bluetooth.BluetoothClass;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.hardware.usb.UsbDevice;
-import android.hardware.usb.UsbDeviceConnection;
-import android.hardware.usb.UsbEndpoint;
-import android.hardware.usb.UsbInterface;
-import android.hardware.usb.UsbManager;
-import android.bluetooth.BluetoothClass.Device;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.felhr.usbserial.UsbSerialDevice;
-import com.felhr.usbserial.UsbSerialInterface;
 import com.linroid.filtermenu.library.FilterMenu;
 import com.linroid.filtermenu.library.FilterMenuLayout;
-
-import java.io.UnsupportedEncodingException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -79,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
                                 break;
 
                             case 1:
-                                Intent intent = new Intent(MainActivity.this, SendMessageActivity.class);
+                                Intent intent = new Intent(MainActivity.this, MessengerActivity.class);
                                 startActivity(intent);
                                 break;
                         }

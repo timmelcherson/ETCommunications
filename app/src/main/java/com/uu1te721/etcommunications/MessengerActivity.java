@@ -2,7 +2,10 @@ package com.uu1te721.etcommunications;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -12,6 +15,8 @@ import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -24,23 +29,27 @@ import com.felhr.usbserial.UsbSerialDevice;
 import com.felhr.usbserial.UsbSerialInterface;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-public class SendMessageActivity extends AppCompatActivity implements View.OnClickListener {
+public class MessengerActivity extends AppCompatActivity implements View.OnClickListener {
 
     private Button mSendBtn, mBeginBtn;
     private EditText mWriteMessageEt;
-    private TextView mWrittenMsg;
-    private ScrollView mMessageFeed;
+    private RecyclerView mMessageFeed;
+    private MessengerRecyclerViewAdapter mMessengerAdapter;
+    private LinearLayoutManager lm;
 
     private UsbDeviceConnection connection;
     private UsbDevice device;
     private UsbManager usbManager;
     private UsbSerialDevice serialPort;
 
-    private ArrayList<String> mMessageList = new ArrayList<>();
+    private List<String> mMessageList = new ArrayList<>();
+    private List<MessageCard> mMessageCardList = new ArrayList<>();
 
     public static final String TAG = "TAG";
     private static final String ACTION_USB_PERMISSION = "com.uu1te721.etcommunications.USB_PERMISSION";
@@ -49,7 +58,7 @@ public class SendMessageActivity extends AppCompatActivity implements View.OnCli
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_send_message);
+        setContentView(R.layout.activity_messenger);
 
         // Set up toolbar as action bar
         Toolbar toolbar = findViewById(R.id.toolbar);
@@ -63,9 +72,17 @@ public class SendMessageActivity extends AppCompatActivity implements View.OnCli
         mSendBtn = findViewById(R.id.send_message_btn);
         mBeginBtn = findViewById(R.id.begin_btn);
         mWriteMessageEt = findViewById(R.id.write_message_et);
-        mWrittenMsg = findViewById(R.id.written_msg_tv);
+//        mWrittenMsg = findViewById(R.id.written_msg_tv);
         mMessageFeed = findViewById(R.id.message_feed_layout);
 
+        MessageCard card1 = new MessageCard("Hello Friend", "received");
+        MessageCard card2 = new MessageCard("Hello to youuuuuuuuuu", "sent");
+        MessageCard card3 = new MessageCard("How u doin", "sent");
+        MessageCard card4 = new MessageCard("amazin ty :)", "received");
+        mMessageCardList.add(card1);
+        mMessageCardList.add(card2);
+        mMessageCardList.add(card3);
+        mMessageCardList.add(card4);
 
         usbManager = (UsbManager) getSystemService(MainActivity.USB_SERVICE);
         setUiEnabled(false);
@@ -79,6 +96,8 @@ public class SendMessageActivity extends AppCompatActivity implements View.OnCli
 
         mSendBtn.setOnClickListener(this);
         mBeginBtn.setOnClickListener(this);
+
+        buildRecyclerView();
     }
 
     @Override
@@ -98,8 +117,20 @@ public class SendMessageActivity extends AppCompatActivity implements View.OnCli
 
     private void sendMessage() {
         String msg = mWriteMessageEt.getText().toString();
+        MessageCard msgCard = new MessageCard(msg, "sent");
+        mMessageCardList.add(msgCard);
         serialPort.write(msg.getBytes());
-        tvAppend(mWrittenMsg, msg);
+        mMessengerAdapter.notifyDataSetChanged();
+        lm.smoothScrollToPosition(mMessageFeed, null, mMessageCardList.size() - 1);
+//        tvAppend(mWrittenMsg, msg);
+    }
+
+    private void buildRecyclerView() {
+        lm = new LinearLayoutManager(this);
+//        lm.setReverseLayout(true);
+        mMessageFeed.setLayoutManager(lm);
+        mMessengerAdapter = new MessengerRecyclerViewAdapter(this, mMessageCardList);
+        mMessageFeed.setAdapter(mMessengerAdapter);
     }
 
     public void findUsbDevices() {
@@ -168,7 +199,7 @@ public class SendMessageActivity extends AppCompatActivity implements View.OnCli
                                         Log.e(TAG, "Error in reading serialport: " + e);
                                     }
 
-                                    tvAppend(mWrittenMsg, "Serial Connection Opened");
+//                                    tvAppend(mWrittenMsg, "Serial Connection Opened");
                                     Toast.makeText(context, "Serial Connection Opened!\n", Toast.LENGTH_SHORT).show();
 
                                 } else {
@@ -201,39 +232,98 @@ public class SendMessageActivity extends AppCompatActivity implements View.OnCli
     private void setUiEnabled(boolean isEnabled) {
         mBeginBtn.setEnabled(!isEnabled);
         mSendBtn.setEnabled(isEnabled);
-        mWrittenMsg.setEnabled(isEnabled);
+//        mWrittenMsg.setEnabled(isEnabled);
     }
+
+    private int mCurrentMsgCardPos;
+    private boolean mNewMessageAdded;
 
     UsbSerialInterface.UsbReadCallback mCallback = new UsbSerialInterface.UsbReadCallback() {
 
         //Defining a Callback which triggers whenever data is read.
         @Override
         public void onReceivedData(byte[] arg0) {
+            final MessageCard msgCard = new MessageCard("", "received");
+            mMessageCardList.add(msgCard);
+
+            if (!mNewMessageAdded) {
+                mCurrentMsgCardPos = mMessageCardList.indexOf(msgCard);
+                mNewMessageAdded = true;
+            }
+
             String data = null;
             try {
                 data = new String(arg0, "UTF-8");
-                data.concat("\n");
-                tvAppend(mWrittenMsg, data);
+                receiveMessage(data);
+//                int n = serialPort.syncRead(arg0, 0);
+//                if (n > 0) {
+//                    byte[] received = new byte[n];
+//
+//                }
+//                runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        receiveMessage(data);
+//                    }
+//                });
+//                tvAppend(mWrittenMsg, data);
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
         }
+
+
     };
 
-    private void appendReceivedMessage(String msg) {
-        ReceivedMessageCard msgCard = new ReceivedMessageCard(msg);
-        mMessageList.add(msg);
-    }
+//    public void insertMessage(String msg) {
+//        new InsertMessageAsyncTask().;
+//    }
+//
+//    private static class InsertMessageAsyncTask extends AsyncTask<Trail, Void, Void> {
+//        @Override
+//        protected Void doInBackground(final Trail... trails) {
+//            mTrailDao.insert(trails[0]);
+//            return null;
+//        }
+//    }
 
-    private void appendSentMessage(String msg) {
-        ReceivedMessageCard msgCard = new ReceivedMessageCard(msg);
-        mMessageList.add(msg);
+    private void receiveMessage(String msg) {
+        final CharSequence finalMsg = msg;
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (msg != null || !msg.equals(""))
+                mMessageCardList.get(mCurrentMsgCardPos).setText(mMessageCardList.get(mCurrentMsgCardPos).getText() + msg);
+                mMessengerAdapter.notifyDataSetChanged();
+            }
+        });
+        lm.smoothScrollToPosition(mMessageFeed, null, mMessageCardList.size() - 1);
     }
 
     private void tvAppend(TextView tv, CharSequence text) {
         final TextView ftv = tv;
         final CharSequence ftext = text;
-        runOnUiThread(() -> ftv.append(ftext));
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ftv.append(ftext);
+            }
+        });
+    }
+
+    @Override
+    protected void onPause() {
+//        Toast.makeText(this, "onPause", Toast.LENGTH_SHORT).show();
+        super.onPause();
+//        unregisterReceiver(usbReceiver);
+    }
+
+    @Override
+    protected void onStop() {
+        Toast.makeText(this, "onStop", Toast.LENGTH_SHORT).show();
+        unregisterReceiver(usbReceiver);
+        super.onStop();
     }
 
     @Override

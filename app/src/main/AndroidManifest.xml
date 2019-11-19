@@ -23,8 +23,9 @@
             <intent-filter>
                 <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
             </intent-filter>
+
         </activity>
-        <activity android:name=".SendMessageActivity" />
+        <activity android:name=".MessengerActivity" />
     </application>
 
 </manifest>
