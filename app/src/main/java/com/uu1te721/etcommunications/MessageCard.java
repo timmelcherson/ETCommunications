@@ -1,23 +1,31 @@
 package com.uu1te721.etcommunications;
 
-public class MessageCard {
+import android.graphics.Bitmap;
+
+ class MessageCard {
+    private Bitmap multimediafile;
     private String mText;
     private String messageDirection;
 
-    public MessageCard(String text, String direction) {
+    MessageCard(String text, String direction) {
         this.mText = text;
         this.messageDirection = direction;
     }
 
-    public void setText(String str) {
-        this.mText = str;
+    MessageCard(Bitmap multimediafile, String direction){
+        this.multimediafile = multimediafile;
+        this.messageDirection = direction;
+
     }
 
-    public String getText() {
+
+    String getText()
+    {
         return mText;
     }
 
-    public String getMessageDirection() {
+    String getMessageDirection()
+    {
         return this.messageDirection;
     }
 }
