@@ -1,8 +1,11 @@
 package com.uu1te721.etcommunications;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.text.SpannableStringBuilder;
+import android.text.style.ImageSpan;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -21,7 +24,6 @@ import java.util.List;
 import static com.uu1te721.etcommunications.MessengerActivity.TAG;
 
 public class MessengerRecyclerViewAdapter extends RecyclerView.Adapter<MessengerRecyclerViewAdapter.ViewHolder> {
-
 
     private Context context;
     private List<MessageCard> mMessageList;
@@ -46,7 +48,8 @@ public class MessengerRecyclerViewAdapter extends RecyclerView.Adapter<Messenger
         }
 
         @Override
-        public void onClick(View v) {
+        public void onClick(View v)
+        {
 
         }
     }
@@ -70,21 +73,35 @@ public class MessengerRecyclerViewAdapter extends RecyclerView.Adapter<Messenger
             holder.mMessageTV.setBackground(context.getDrawable(R.drawable.received_message_card_background));
             params.addRule(RelativeLayout.ALIGN_PARENT_START);
         }
-        else {
+        else { // Sent
             holder.mMessageTV.setBackground(context.getDrawable(R.drawable.sent_message_card_background));
             params.addRule(RelativeLayout.ALIGN_PARENT_END);
         }
 
         holder.mMessageTV.setLayoutParams(params);
-        holder.mMessageTV.setText(item.getText());
+
+
+        // Putting text or multimedia object to bubbles.
+        SpannableStringBuilder ssb = new SpannableStringBuilder();
+        if (item.hasPicture()){
+            ssb.append(" ");
+            Bitmap pic = item.getPicture();
+            ssb.setSpan(new ImageSpan(context, pic), ssb.length()-1, ssb.length(),0);
+        } else {// If only has text
+            ssb.append(item.getText());
+        }
+        holder.mMessageTV.setText(ssb);
+
     }
 
     @Override
-    public int getItemCount() {
+    public int getItemCount()
+    {
         return mMessageList.size();
     }
 
-    public interface OnMessageClickListener {
+    public interface OnMessageClickListener
+    {
         void onItemClick(int position);
     }
 }

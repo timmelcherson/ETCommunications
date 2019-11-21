@@ -161,7 +161,6 @@ public class MessengerActivity extends AppCompatActivity{
             // TODO: Send Bitmap over USB
         }
 
-
         // Displaying multimedia object (Only support image for now).
         MessageCard msgCard = new MessageCard(multimediaMessage, "sent");
         mMessageCardList.add(msgCard);
@@ -223,8 +222,8 @@ public class MessengerActivity extends AppCompatActivity{
         if (requestCode == REQUEST_IMAGE_CAPTUTRE && resultCode == RESULT_OK) {
             Bundle extras = data.getExtras();
             Bitmap imageBitmap = (Bitmap) extras.get("data");
-
             // HERE put a code that sends the picture and displays in the messenger.
+            sendMessage(imageBitmap);
             Toast.makeText(this, "Picture Taken", Toast.LENGTH_SHORT).show();
         }
     }
