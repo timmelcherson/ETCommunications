@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
@@ -22,6 +23,7 @@ import android.widget.Toast;
 import com.felhr.usbserial.UsbSerialDevice;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -133,14 +135,17 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
             e.printStackTrace();
         }
 
-        Log.d(TAG, "onArduinoMessage: bytes[]: " + Arrays.toString(bytes));
-        Log.d(TAG, "onArduinoMessage: data: " + data);
+
+        Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+        recieveImage(bmp);
+        Log.d(TAG, "Bytes.length: "+ String.valueOf(bytes.length));
+        Log.d(TAG, "Bytes: " + bytes);
+
 //        Log.d(TAG, "onArduinoMessage: isMessageReceived: " + isMessageReceived);
 //        if (!isMessageReceived) {
 //            isMessageReceived = true;
             if (!(Arrays.toString(bytes).equals("[13]") || Arrays.toString(bytes).equals("[0, 13]"))) {
-                Log.d(TAG, "onArduinoMessage: bytes[]: " + Arrays.toString(bytes));
-                Log.d(TAG, "onArduinoMessage: data: " + data);
+
                 receiveMessage(data);
             }
 //        }
@@ -184,11 +189,19 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         lm.smoothScrollToPosition(mMessageFeed, null, mMessageCardList.size() - 1);
     }
 
+
     public void sendMultimediaMessage(Bitmap multimediaMessage) {
         // Called when picture taken
-        if (usbService != null) { // if UsbService was correctly binded, Send data
-            // TODO: Send Bitmap over USB
-        }
+
+        int width = multimediaMessage.getWidth();
+        int height = multimediaMessage.getHeight();
+
+        int size = multimediaMessage.getRowBytes() * multimediaMessage.getHeight();
+        ByteBuffer byteBuffer = ByteBuffer.allocate(size);
+        multimediaMessage.copyPixelsToBuffer(byteBuffer);
+        byte[] byteArray = byteBuffer.array();
+
+        mArduino.send(byteArray);
 
         // Displaying multimedia object (Only support image for now).
         MessageCard card = new MessageCard(multimediaMessage, "sent");
@@ -197,6 +210,12 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     }
 
 
+    private void recieveImage(Bitmap bmp){
+        // Displaying multimedia object (Only support image for now).
+        MessageCard card = new MessageCard(bmp, "received");
+        mMessageCardList.add(card);
+        mMessengerAdapter.notifyDataSetChanged();
+    }
     private void receiveMessage(String msg) {
 
         runOnUiThread(new Runnable() {
