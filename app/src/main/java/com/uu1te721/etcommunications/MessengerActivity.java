@@ -137,7 +137,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
 
         Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-        recieveImage(bmp);
+        receiveImage(bmp);
         Log.d(TAG, "Bytes.length: "+ String.valueOf(bytes.length));
         Log.d(TAG, "Bytes: " + bytes);
 
@@ -210,11 +210,18 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     }
 
 
-    private void recieveImage(Bitmap bmp){
+    private void receiveImage(Bitmap bmp){
         // Displaying multimedia object (Only support image for now).
-        MessageCard card = new MessageCard(bmp, "received");
-        mMessageCardList.add(card);
-        mMessengerAdapter.notifyDataSetChanged();
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(MessengerActivity.this, "received image", Toast.LENGTH_SHORT).show();
+//                MessageCard card = new MessageCard(bmp, "received");
+//                mMessageCardList.add(card);
+//                mMessengerAdapter.notifyDataSetChanged();
+            }
+        });
+        
     }
     private void receiveMessage(String msg) {
 
