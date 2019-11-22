@@ -135,20 +135,18 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
             e.printStackTrace();
         }
 
-
-        Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-        receiveImage(bmp);
-        Log.d(TAG, "Bytes.length: "+ String.valueOf(bytes.length));
+        Log.d(TAG, "Bytes.length: " + String.valueOf(bytes.length));
         Log.d(TAG, "Bytes: " + bytes);
 
-//        Log.d(TAG, "onArduinoMessage: isMessageReceived: " + isMessageReceived);
-//        if (!isMessageReceived) {
-//            isMessageReceived = true;
-            if (!(Arrays.toString(bytes).equals("[13]") || Arrays.toString(bytes).equals("[0, 13]"))) {
+        if (bytes.length > 20) {
+            Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+            receiveImage(bmp);
+        }
 
-                receiveMessage(data);
-            }
-//        }
+        if (!(Arrays.toString(bytes).equals("[13]") || Arrays.toString(bytes).equals("[0, 13]"))) {
+
+            receiveMessage(data);
+        }
     }
 
     @Override
@@ -210,19 +208,20 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     }
 
 
-    private void receiveImage(Bitmap bmp){
+    private void receiveImage(Bitmap bmp) {
         // Displaying multimedia object (Only support image for now).
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 Toast.makeText(MessengerActivity.this, "received image", Toast.LENGTH_SHORT).show();
-//                MessageCard card = new MessageCard(bmp, "received");
-//                mMessageCardList.add(card);
-//                mMessengerAdapter.notifyDataSetChanged();
+                MessageCard card = new MessageCard(bmp, "received");
+                mMessageCardList.add(card);
+                mMessengerAdapter.notifyDataSetChanged();
             }
         });
-        
+
     }
+
     private void receiveMessage(String msg) {
 
         runOnUiThread(new Runnable() {
