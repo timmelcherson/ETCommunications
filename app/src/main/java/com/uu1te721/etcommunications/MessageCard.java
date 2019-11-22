@@ -22,11 +22,7 @@ class MessageCard {
     }
 
     Boolean hasPicture() {
-        if (mMultimediaFile != null) {
-            return true;
-        } else {
-            return false;
-        }
+        return this.mMultimediaFile != null;
     }
 
     Bitmap getPicture() {

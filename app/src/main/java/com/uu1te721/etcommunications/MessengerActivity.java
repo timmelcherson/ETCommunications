@@ -6,6 +6,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -16,6 +17,7 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -129,22 +131,25 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     public void onArduinoMessage(byte[] bytes) {
         String data = null;
 
-        try {
-            data = new String(bytes, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
+
 
         Log.d(TAG, "Bytes.length: " + String.valueOf(bytes.length));
         Log.d(TAG, "Bytes: " + bytes);
 
-        if (bytes.length > 20) {
+        if (bytes.length > 40) {
+            Log.d(TAG, "large byte array received");
             Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
             receiveImage(bmp);
-        }
+        } else if (!(Arrays.toString(bytes).equals("[0]")
+                || Arrays.toString(bytes).equals("[13]")
+                || Arrays.toString(bytes).equals("[0, 13]"))
+                && bytes.length > 1) {
 
-        if (!(Arrays.toString(bytes).equals("[13]") || Arrays.toString(bytes).equals("[0, 13]"))) {
-
+            try {
+                data = new String(bytes, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
             receiveMessage(data);
         }
     }
@@ -178,13 +183,13 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         String msg = mWriteMessageEt.getText().toString();
 
         mArduino.send(msg.getBytes());
-        mWriteMessageEt.setText("");
-        mWriteMessageEt.clearFocus();
 
         MessageCard msgCard = new MessageCard(msg, "sent");
         mMessageCardList.add(msgCard);
         mMessengerAdapter.notifyDataSetChanged();
         lm.smoothScrollToPosition(mMessageFeed, null, mMessageCardList.size() - 1);
+        mWriteMessageEt.setText("");
+        hideSoftKeyboard();
     }
 
 
@@ -205,8 +210,16 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         MessageCard card = new MessageCard(multimediaMessage, "sent");
         mMessageCardList.add(card);
         mMessengerAdapter.notifyDataSetChanged();
+        hideSoftKeyboard();
     }
 
+    private void hideSoftKeyboard() {
+        View view = this.getCurrentFocus();
+        if (view != null) {
+            InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+        }
+    }
 
     private void receiveImage(Bitmap bmp) {
         // Displaying multimedia object (Only support image for now).

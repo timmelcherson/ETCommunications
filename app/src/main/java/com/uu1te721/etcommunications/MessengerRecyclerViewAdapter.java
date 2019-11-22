@@ -46,8 +46,7 @@ public class MessengerRecyclerViewAdapter extends RecyclerView.Adapter<Messenger
         }
 
         @Override
-        public void onClick(View v)
-        {
+        public void onClick(View v) {
 
         }
     }
@@ -70,8 +69,7 @@ public class MessengerRecyclerViewAdapter extends RecyclerView.Adapter<Messenger
         if (msgDirection.equals("received")) {
             holder.mMessageTV.setBackground(context.getDrawable(R.drawable.received_message_card_background));
             params.addRule(RelativeLayout.ALIGN_PARENT_START);
-        }
-        else { // Sent
+        } else { // Sent
             holder.mMessageTV.setBackground(context.getDrawable(R.drawable.sent_message_card_background));
             params.addRule(RelativeLayout.ALIGN_PARENT_END);
         }
@@ -81,10 +79,10 @@ public class MessengerRecyclerViewAdapter extends RecyclerView.Adapter<Messenger
 
         // Putting text or multimedia object to bubbles.
         SpannableStringBuilder ssb = new SpannableStringBuilder();
-        if (item.hasPicture()){
+        if (item.hasPicture()) {
             ssb.append(" ");
             Bitmap pic = item.getPicture();
-            ssb.setSpan(new ImageSpan(context, pic), ssb.length()-1, ssb.length(),0);
+            ssb.setSpan(new ImageSpan(context, pic), ssb.length() - 1, ssb.length(), 0);
         } else {// If only has text
             ssb.append(item.getText());
         }
@@ -93,13 +91,11 @@ public class MessengerRecyclerViewAdapter extends RecyclerView.Adapter<Messenger
     }
 
     @Override
-    public int getItemCount()
-    {
+    public int getItemCount() {
         return mMessageList.size();
     }
 
-    public interface OnMessageClickListener
-    {
+    public interface OnMessageClickListener {
         void onItemClick(int position);
     }
 }
