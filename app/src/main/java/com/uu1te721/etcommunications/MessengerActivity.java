@@ -84,6 +84,13 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 //        setupArduino();
     }
 
+    private void buildRecyclerView() {
+        lm = new LinearLayoutManager(this);
+        mMessageFeed.setLayoutManager(lm);
+        mMessengerAdapter = new MessengerRecyclerViewAdapter(this, mMessageCardList);
+        mMessageFeed.setAdapter(mMessengerAdapter);
+    }
+
     @Override
     public void onClick(View v) {
 
@@ -119,11 +126,16 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     @Override
     public void onArduinoMessage(byte[] bytes) {
         String data = null;
+
         try {
             data = new String(bytes, "UTF-8");
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
+
+
+        Log.d(TAG, "onArduinoMessage: bytes[]: " + Arrays.toString(bytes));
+        Log.d(TAG, "onArduinoMessage: data: " + data);
 
         if (!isMessageReceived) {
             isMessageReceived = true;
@@ -144,51 +156,6 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         mArduino.reopen();
     }
 
-    /*private void setupArduino() {
-        mArduinoListener = new ArduinoListener() {
-            @Override
-            public void onArduinoAttached(UsbDevice device) {
-                mArduino.open(device);
-            }
-
-            @Override
-            public void onArduinoDetached() {
-                // arduino detached from phone
-
-            }
-
-            @Override
-            public void onArduinoMessage(byte[] bytes) {
-                String data = null;
-                try {
-                    data = new String(bytes, "UTF-8");
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                }
-
-                if (!isMessageReceived) {
-                    isMessageReceived = true;
-                    receiveMessage(data);
-                }
-            }
-
-            @Override
-            public void onArduinoOpened() {
-                // you can start the communication
-                Toast.makeText(MessengerActivity.this, "Arduino Opened", Toast.LENGTH_SHORT).show();
-                String str = "Hello Arduino";
-                mArduino.send(str.getBytes());
-            }
-
-            @Override
-            public void onUsbPermissionDenied() {
-                // Permission denied, display popup then
-                mArduino.reopen();
-            }
-        };
-        mArduino.setArduinoListener(mArduinoListener);
-    }*/
-
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -204,16 +171,10 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         // This method called when send button pressed.
         String msg = mWriteMessageEt.getText().toString();
 
-        // Sending to Arduino
-
-//        if (usbService != null) { // if UsbService was correctly binded, Send data
-//            usbService.write(msg.getBytes());
-//        }
-        Toast.makeText(this, "sending to arduino", Toast.LENGTH_SHORT).show();
         mArduino.send(msg.getBytes());
+        mWriteMessageEt.setText("");
+        mWriteMessageEt.clearFocus();
 
-        Log.d(TAG, "sending message msg.getBytes: " + Arrays.toString(msg.getBytes()));
-        Log.d(TAG, "sending message msg.getBytes: " + msg.getBytes());
         MessageCard msgCard = new MessageCard(msg, "sent");
         mMessageCardList.add(msgCard);
         mMessengerAdapter.notifyDataSetChanged();
@@ -232,18 +193,14 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         mMessengerAdapter.notifyDataSetChanged();
     }
 
-    private void buildRecyclerView() {
-        lm = new LinearLayoutManager(this);
-        mMessageFeed.setLayoutManager(lm);
-        mMessengerAdapter = new MessengerRecyclerViewAdapter(this, mMessageCardList);
-        mMessageFeed.setAdapter(mMessengerAdapter);
-    }
+
 
     private void receiveMessage(String msg) {
 
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                Log.d(TAG, "run msg: " + msg);
                 MessageCard msgCard = new MessageCard(msg, "received");
                 mMessageCardList.add(msgCard);
                 mMessengerAdapter.notifyDataSetChanged();
