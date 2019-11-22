@@ -2,42 +2,42 @@ package com.uu1te721.etcommunications;
 
 import android.graphics.Bitmap;
 
- // TODO: This only handles pictures. Thus the variable "multimediafile" is not general for audio, etc.
+// TODO: This only handles pictures. Thus the variable "mMultimediaFile" is not general for audio, etc.
 
- class MessageCard {
-    private Bitmap multimediafile;
+class MessageCard {
+    private Bitmap mMultimediaFile;
     private String mText;
     private String messageDirection;
 
+    // Constructor for text messages
     MessageCard(String text, String direction) {
         this.mText = text;
         this.messageDirection = direction;
     }
 
-    MessageCard(Bitmap multimediafile, String direction){
-        this.multimediafile = multimediafile;
+    // Constructor for multimedia messages
+    MessageCard(Bitmap mMultimediaFile, String direction) {
+        this.mMultimediaFile = mMultimediaFile;
         this.messageDirection = direction;
     }
 
-    Boolean hasPicture(){
-        if (multimediafile != null){
+    Boolean hasPicture() {
+        if (mMultimediaFile != null) {
             return true;
-        } else{
+        } else {
             return false;
         }
     }
 
-    Bitmap getPicture(){
-        return multimediafile;
+    Bitmap getPicture() {
+        return mMultimediaFile;
     }
 
-    String getText()
-    {
+    String getText() {
         return mText;
     }
 
-    String getMessageDirection()
-    {
+    String getMessageDirection() {
         return this.messageDirection;
     }
 }

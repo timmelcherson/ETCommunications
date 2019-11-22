@@ -21,8 +21,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
 
-import static com.uu1te721.etcommunications.MessengerActivity.TAG;
-
 public class MessengerRecyclerViewAdapter extends RecyclerView.Adapter<MessengerRecyclerViewAdapter.ViewHolder> {
 
     private Context context;

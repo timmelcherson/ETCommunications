@@ -13,6 +13,7 @@ import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -22,17 +23,19 @@ import com.felhr.usbserial.UsbSerialDevice;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import me.aflak.arduino.Arduino;
 import me.aflak.arduino.ArduinoListener;
 
-public class MessengerActivity extends AppCompatActivity{
+import static com.uu1te721.etcommunications.utils.Constants.REQUEST_IMAGE_CAPTUTRE;
+import static com.uu1te721.etcommunications.utils.Constants.TAG;
 
-    public static final String TAG = "TAG";
-    private static final String ACTION_USB_PERMISSION = "com.uu1te721.etcommunications.USB_PERMISSION";
-    private static final String ACTION_USB_NOT_SUPPORTED = "com.uu1te721.etcommunications.USB_NOT_SUPPORTED";
-    private Button mSendBtn, mBeginBtn;
+public class MessengerActivity extends AppCompatActivity implements View.OnClickListener, ArduinoListener {
+
+
+    private Button mSendBtn, mCameraBtn;
     private EditText mWriteMessageEt;
     private RecyclerView mMessageFeed;
     private MessengerRecyclerViewAdapter mMessengerAdapter;
@@ -43,14 +46,12 @@ public class MessengerActivity extends AppCompatActivity{
     private UsbSerialDevice serialPort;
     private List<String> mMessageList = new ArrayList<>();
     private List<MessageCard> mMessageCardList = new ArrayList<>();
-    //    private MyHandler mHandler;
+
     private UsbService usbService;
     private Arduino mArduino;
+    private ArduinoListener mArduinoListener;
     private boolean isMessageReceived = false;
 
-
-    // for taking picutre
-    private static final int REQUEST_IMAGE_CAPTUTRE = 101;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,27 +68,84 @@ public class MessengerActivity extends AppCompatActivity{
         getSupportActionBar().setDisplayShowHomeEnabled(true);
 
         mSendBtn = findViewById(R.id.send_message_btn);
-        mBeginBtn = findViewById(R.id.camera_btn);
+        mCameraBtn = findViewById(R.id.camera_btn);
         mWriteMessageEt = findViewById(R.id.write_message_et);
         mMessageFeed = findViewById(R.id.message_feed_layout);
 
         mArduino = new Arduino(this);
         mArduino.addVendorId(10755);
         mArduino.addVendorId(9025);
+        mArduino.setArduinoListener(this);
 
+        mSendBtn.setOnClickListener(this);
+        mCameraBtn.setOnClickListener(this);
 
         buildRecyclerView();
+//        setupArduino();
     }
 
+    @Override
+    public void onClick(View v) {
+
+        switch (v.getId()) {
+
+            case R.id.send_message_btn:
+                sendMessage();
+                break;
+
+            case R.id.camera_btn:
+                takePicture();
+                break;
+        }
+    }
 
     @Override
     protected void onStart() {
         super.onStart();
-        setupArduino();
+//        setupArduino();
+        mArduino.setArduinoListener(this);
     }
 
-    private void setupArduino() {
-        mArduino.setArduinoListener(new ArduinoListener() {
+    @Override
+    public void onArduinoAttached(UsbDevice device) {
+        mArduino.open(device);
+    }
+
+    @Override
+    public void onArduinoDetached() {
+
+    }
+
+    @Override
+    public void onArduinoMessage(byte[] bytes) {
+        String data = null;
+        try {
+            data = new String(bytes, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
+        if (!isMessageReceived) {
+            isMessageReceived = true;
+            receiveMessage(data);
+        }
+    }
+
+    @Override
+    public void onArduinoOpened() {
+        // you can start the communication
+        String str = "Hello Arduino";
+        mArduino.send(str.getBytes());
+    }
+
+    @Override
+    public void onUsbPermissionDenied() {
+        // Permission denied, display popup then
+        mArduino.reopen();
+    }
+
+    /*private void setupArduino() {
+        mArduinoListener = new ArduinoListener() {
             @Override
             public void onArduinoAttached(UsbDevice device) {
                 mArduino.open(device);
@@ -117,6 +175,7 @@ public class MessengerActivity extends AppCompatActivity{
             @Override
             public void onArduinoOpened() {
                 // you can start the communication
+                Toast.makeText(MessengerActivity.this, "Arduino Opened", Toast.LENGTH_SHORT).show();
                 String str = "Hello Arduino";
                 mArduino.send(str.getBytes());
             }
@@ -126,8 +185,9 @@ public class MessengerActivity extends AppCompatActivity{
                 // Permission denied, display popup then
                 mArduino.reopen();
             }
-        });
-    }
+        };
+        mArduino.setArduinoListener(mArduinoListener);
+    }*/
 
     @Override
     protected void onDestroy() {
@@ -136,34 +196,39 @@ public class MessengerActivity extends AppCompatActivity{
         mArduino.close();
     }
 
-    public void sendMessage(View view) {
+    public void sendMessage() {
+
+        if (mWriteMessageEt.getText().toString().equals(""))
+            return;
+
         // This method called when send button pressed.
-        String msg = "";
+        String msg = mWriteMessageEt.getText().toString();
 
         // Sending to Arduino
-        if (!mWriteMessageEt.getText().toString().equals("")) {
-            msg = mWriteMessageEt.getText().toString();
-            if (usbService != null) { // if UsbService was correctly binded, Send data
-                usbService.write(msg.getBytes());
-            }
-        }
 
-        // Display sent message
+//        if (usbService != null) { // if UsbService was correctly binded, Send data
+//            usbService.write(msg.getBytes());
+//        }
+        Toast.makeText(this, "sending to arduino", Toast.LENGTH_SHORT).show();
+        mArduino.send(msg.getBytes());
+
+        Log.d(TAG, "sending message msg.getBytes: " + Arrays.toString(msg.getBytes()));
+        Log.d(TAG, "sending message msg.getBytes: " + msg.getBytes());
         MessageCard msgCard = new MessageCard(msg, "sent");
         mMessageCardList.add(msgCard);
         mMessengerAdapter.notifyDataSetChanged();
         lm.smoothScrollToPosition(mMessageFeed, null, mMessageCardList.size() - 1);
     }
 
-    public void sendMessage(Bitmap multimediaMessage){
+    public void sendMultimediaMessage(Bitmap multimediaMessage) {
         // Called when picture taken
         if (usbService != null) { // if UsbService was correctly binded, Send data
             // TODO: Send Bitmap over USB
         }
 
         // Displaying multimedia object (Only support image for now).
-        MessageCard msgCard = new MessageCard(multimediaMessage, "sent");
-        mMessageCardList.add(msgCard);
+        MessageCard card = new MessageCard(multimediaMessage, "sent");
+        mMessageCardList.add(card);
         mMessengerAdapter.notifyDataSetChanged();
     }
 
@@ -173,12 +238,6 @@ public class MessengerActivity extends AppCompatActivity{
         mMessengerAdapter = new MessengerRecyclerViewAdapter(this, mMessageCardList);
         mMessageFeed.setAdapter(mMessengerAdapter);
     }
-
-    private void setUiEnabled(boolean isEnabled) {
-        mBeginBtn.setEnabled(!isEnabled);
-        mSendBtn.setEnabled(isEnabled);
-    }
-
 
     private void receiveMessage(String msg) {
 
@@ -207,12 +266,11 @@ public class MessengerActivity extends AppCompatActivity{
         super.onBackPressed();
     }
 
-    public void takePicture(View view) {
+    public void takePicture() {
         Intent imageTakeIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
 
-        if (imageTakeIntent.resolveActivity(getPackageManager()) != null)
-        {
-        startActivityForResult(imageTakeIntent, REQUEST_IMAGE_CAPTUTRE);
+        if (imageTakeIntent.resolveActivity(getPackageManager()) != null) {
+            startActivityForResult(imageTakeIntent, REQUEST_IMAGE_CAPTUTRE);
         }
     }
 
@@ -221,9 +279,10 @@ public class MessengerActivity extends AppCompatActivity{
 
         if (requestCode == REQUEST_IMAGE_CAPTUTRE && resultCode == RESULT_OK) {
             Bundle extras = data.getExtras();
+
             Bitmap imageBitmap = (Bitmap) extras.get("data");
             // HERE put a code that sends the picture and displays in the messenger.
-            sendMessage(imageBitmap);
+            sendMultimediaMessage(imageBitmap);
             Toast.makeText(this, "Picture Taken", Toast.LENGTH_SHORT).show();
         }
     }
