@@ -133,14 +133,17 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
             e.printStackTrace();
         }
 
-
         Log.d(TAG, "onArduinoMessage: bytes[]: " + Arrays.toString(bytes));
         Log.d(TAG, "onArduinoMessage: data: " + data);
-
-        if (!isMessageReceived) {
-            isMessageReceived = true;
-            receiveMessage(data);
-        }
+//        Log.d(TAG, "onArduinoMessage: isMessageReceived: " + isMessageReceived);
+//        if (!isMessageReceived) {
+//            isMessageReceived = true;
+            if (!(Arrays.toString(bytes).equals("[13]") || Arrays.toString(bytes).equals("[0, 13]"))) {
+                Log.d(TAG, "onArduinoMessage: bytes[]: " + Arrays.toString(bytes));
+                Log.d(TAG, "onArduinoMessage: data: " + data);
+                receiveMessage(data);
+            }
+//        }
     }
 
     @Override
@@ -194,7 +197,6 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     }
 
 
-
     private void receiveMessage(String msg) {
 
         runOnUiThread(new Runnable() {
@@ -207,7 +209,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
                 isMessageReceived = false;
             }
         });
-
+//        Log.d(TAG, "onArduinoMessage: isMessageReceived: " + isMessageReceived);
         lm.smoothScrollToPosition(mMessageFeed, null, mMessageCardList.size());
     }
 
