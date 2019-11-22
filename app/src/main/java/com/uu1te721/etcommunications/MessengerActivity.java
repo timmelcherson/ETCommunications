@@ -24,6 +24,9 @@ import android.widget.Toast;
 
 import com.felhr.usbserial.UsbSerialDevice;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -132,19 +135,20 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         String data = null;
 
 
-
         Log.d(TAG, "Bytes.length: " + String.valueOf(bytes.length));
         Log.d(TAG, "Bytes: " + bytes);
+        Log.d(TAG, "onArduinoMessage: " + Arrays.toString(bytes));
 
         if (bytes.length > 40) {
             Log.d(TAG, "large byte array received");
             Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
             receiveImage(bmp);
-        } else if (!(Arrays.toString(bytes).equals("[0]")
-                || Arrays.toString(bytes).equals("[13]")
-                || Arrays.toString(bytes).equals("[0, 13]"))
-                && bytes.length > 1) {
-
+        }
+//        else if (!(Arrays.toString(bytes).equals("[0]")
+//                || Arrays.toString(bytes).equals("[13]")
+//                || Arrays.toString(bytes).equals("[0, 13]"))
+//                && bytes.length > 1) {
+        else {
             try {
                 data = new String(bytes, "UTF-8");
             } catch (UnsupportedEncodingException e) {
@@ -204,6 +208,8 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         multimediaMessage.copyPixelsToBuffer(byteBuffer);
         byte[] byteArray = byteBuffer.array();
 
+
+        // Send image byte information to the arduino
         mArduino.send(byteArray);
 
         // Displaying multimedia object (Only support image for now).
@@ -216,7 +222,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     private void hideSoftKeyboard() {
         View view = this.getCurrentFocus();
         if (view != null) {
-            InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
             imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
         }
     }
@@ -278,9 +284,46 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
             Bundle extras = data.getExtras();
 
             Bitmap imageBitmap = (Bitmap) extras.get("data");
+            Log.d(TAG, "bitmap allocation bytecount: " + imageBitmap.getAllocationByteCount());
+            Log.d(TAG, "bitmap bytecount: " + imageBitmap.getByteCount());
+            Log.d(TAG, "bitmap width: " + imageBitmap.getWidth());
+            Log.d(TAG, "bitmap height: " + imageBitmap.getHeight());
             // HERE put a code that sends the picture and displays in the messenger.
-            sendMultimediaMessage(imageBitmap);
+
+            // Compress image (arduino memory is not very large)
+//            ByteArrayOutputStream out = new ByteArrayOutputStream();
+//            imageBitmap.compress(Bitmap.CompressFormat.JPEG, 10, out);
+//            byte[] img = out.toByteArray();
+//            Bitmap compressedBitmap = BitmapFactory.decodeByteArray(img, 0, img.length);
+
+//            Log.d(TAG, "compressedBitmap allocation bytecount: " + compressedBitmap.getAllocationByteCount());
+//            Log.d(TAG, "compressedBitmap bytecount: " + compressedBitmap.getByteCount());
+//            Log.d(TAG, "compressedBitmap width: " + compressedBitmap.getWidth());
+//            Log.d(TAG, "compressedBitmap height: " + compressedBitmap.getHeight());
+
+            Bitmap compressedBitmap = getResizedBitmap(imageBitmap, 60);
+
+            Log.d(TAG, "compressedBitmap allocation bytecount: " + compressedBitmap.getAllocationByteCount());
+            Log.d(TAG, "compressedBitmap bytecount: " + compressedBitmap.getByteCount());
+            Log.d(TAG, "compressedBitmap width: " + compressedBitmap.getWidth());
+            Log.d(TAG, "compressedBitmap height: " + compressedBitmap.getHeight());
+            sendMultimediaMessage(compressedBitmap);
             Toast.makeText(this, "Picture Taken", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    public Bitmap getResizedBitmap(Bitmap image, int maxSize) {
+        int width = image.getWidth();
+        int height = image.getHeight();
+
+        float bitmapRatio = (float)width / (float) height;
+        if (bitmapRatio > 1) {
+            width = maxSize;
+            height = (int) (width / bitmapRatio);
+        } else {
+            height = maxSize;
+            width = (int) (height * bitmapRatio);
+        }
+        return Bitmap.createScaledBitmap(image, width, height, true);
     }
 }

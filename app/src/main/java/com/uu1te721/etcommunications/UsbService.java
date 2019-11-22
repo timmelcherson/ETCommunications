@@ -22,9 +22,9 @@ import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class UsbService extends Service {
+import static com.uu1te721.etcommunications.utils.Constants.TAG;
 
-    public static final String TAG = "UsbService";
+public class UsbService extends Service {
 
     public static final String ACTION_USB_READY = "com.uu1te721.etcommunications.USB_READY";
     public static final String ACTION_USB_ATTACHED = "android.hardware.usb.action.USB_DEVICE_ATTACHED";

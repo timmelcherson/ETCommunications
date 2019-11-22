@@ -15,9 +15,6 @@ public class MainActivity extends AppCompatActivity {
 
     private FilterMenuLayout mLayout;
 
-    public static final String TAG = "TAG";
-    private static final String ACTION_USB_PERMISSION = "com.uu1te721.etcommunications.USB_PERMISSION";
-
     private TextView tv1, tv3, tv4, tv5, tv6, tv7;
 
 

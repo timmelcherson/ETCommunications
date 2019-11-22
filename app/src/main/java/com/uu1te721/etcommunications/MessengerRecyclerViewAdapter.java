@@ -18,8 +18,10 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
+import static com.uu1te721.etcommunications.utils.Constants.TAG;
 
 import java.util.List;
+
 
 public class MessengerRecyclerViewAdapter extends RecyclerView.Adapter<MessengerRecyclerViewAdapter.ViewHolder> {
 
@@ -79,7 +81,8 @@ public class MessengerRecyclerViewAdapter extends RecyclerView.Adapter<Messenger
 
         // Putting text or multimedia object to bubbles.
         SpannableStringBuilder ssb = new SpannableStringBuilder();
-        if (item.hasPicture()) {
+        Log.d(TAG, "bitmap of item at position " + position + " null in recycler?: " + String.valueOf(item.hasPicture(position)));
+        if (item.hasPicture(position)) {
             ssb.append(" ");
             Bitmap pic = item.getPicture();
             ssb.setSpan(new ImageSpan(context, pic), ssb.length() - 1, ssb.length(), 0);
