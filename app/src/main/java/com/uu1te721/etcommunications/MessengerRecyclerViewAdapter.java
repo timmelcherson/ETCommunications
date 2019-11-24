@@ -1,26 +1,24 @@
 package com.uu1te721.etcommunications;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.Color;
-import android.graphics.drawable.Drawable;
 import android.text.SpannableStringBuilder;
 import android.text.style.ImageSpan;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
-import static com.uu1te721.etcommunications.utils.Constants.TAG;
 
 import java.util.List;
+
+import static com.uu1te721.etcommunications.utils.Constants.TAG;
 
 
 public class MessengerRecyclerViewAdapter extends RecyclerView.Adapter<MessengerRecyclerViewAdapter.ViewHolder> {
@@ -30,7 +28,7 @@ public class MessengerRecyclerViewAdapter extends RecyclerView.Adapter<Messenger
     private String msgDirection;
 
     // Constructor
-    public MessengerRecyclerViewAdapter(Context context, List<MessageCard> messageList) {
+    MessengerRecyclerViewAdapter(Context context, List<MessageCard> messageList) {
         this.context = context;
         this.mMessageList = messageList;
     }
@@ -41,7 +39,7 @@ public class MessengerRecyclerViewAdapter extends RecyclerView.Adapter<Messenger
         private RelativeLayout mMessageLayout;
         private String mMsgDirection;
 
-        public ViewHolder(@NonNull View view) {
+        ViewHolder(@NonNull View view) {
             super(view);
             mMessageTV = view.findViewById(R.id.message_card_layout_text);
             mMessageLayout = view.findViewById(R.id.message_card_layout);
@@ -81,11 +79,19 @@ public class MessengerRecyclerViewAdapter extends RecyclerView.Adapter<Messenger
 
         // Putting text or multimedia object to bubbles.
         SpannableStringBuilder ssb = new SpannableStringBuilder();
-        Log.d(TAG, "bitmap of item at position " + position + " null in recycler?: " + String.valueOf(item.hasPicture(position)));
+        Log.d(TAG, "bitmap of item at position " + position + " null in recycler?: " + item.hasPicture(position));
         if (item.hasPicture(position)) {
             ssb.append(" ");
             Bitmap pic = item.getPicture();
             ssb.setSpan(new ImageSpan(context, pic), ssb.length() - 1, ssb.length(), 0);
+
+            // Make figure clickable for preview.
+            holder.mMessageTV.setOnClickListener(view -> {
+                Intent intent = new Intent(context, ImageDialog.class);
+                intent.putExtra("imagePath", item.getPhotoPath());
+                context.startActivity(intent);
+            });
+
         } else {// If only has text
             ssb.append(item.getText());
         }

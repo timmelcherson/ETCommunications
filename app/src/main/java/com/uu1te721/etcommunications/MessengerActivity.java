@@ -1,11 +1,5 @@
 package com.uu1te721.etcommunications;
 
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -13,7 +7,9 @@ import android.graphics.BitmapFactory;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
@@ -22,21 +18,31 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.FileProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.felhr.usbserial.UsbSerialDevice;
 
-import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import me.aflak.arduino.Arduino;
 import me.aflak.arduino.ArduinoListener;
 
 import static com.uu1te721.etcommunications.utils.Constants.REQUEST_IMAGE_CAPTUTRE;
+import static com.uu1te721.etcommunications.utils.Constants.IMAGE_DISPLAY_SCALE_FACTOR;
+
 import static com.uu1te721.etcommunications.utils.Constants.TAG;
 
 public class MessengerActivity extends AppCompatActivity implements View.OnClickListener, ArduinoListener {
@@ -53,12 +59,10 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     private UsbSerialDevice serialPort;
     private List<String> mMessageList = new ArrayList<>();
     private List<MessageCard> mMessageCardList = new ArrayList<>();
-
     private UsbService usbService;
     private Arduino mArduino;
     private ArduinoListener mArduinoListener;
     private boolean isMessageReceived = false;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,8 +91,8 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         mSendBtn.setOnClickListener(this);
         mCameraBtn.setOnClickListener(this);
 
+
         buildRecyclerView();
-//        setupArduino();
     }
 
     private void buildRecyclerView() {
@@ -132,28 +136,15 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     @Override
     public void onArduinoMessage(byte[] bytes) {
-        String data = null;
-
-
-        Log.d(TAG, "Bytes.length: " + String.valueOf(bytes.length));
-        Log.d(TAG, "Bytes: " + bytes);
-        Log.d(TAG, "onArduinoMessage: " + Arrays.toString(bytes));
+        String data;
 
         if (bytes.length > 40) {
-            Log.d(TAG, "large byte array received");
             Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
             receiveImage(bmp);
         }
-//        else if (!(Arrays.toString(bytes).equals("[0]")
-//                || Arrays.toString(bytes).equals("[13]")
-//                || Arrays.toString(bytes).equals("[0, 13]"))
-//                && bytes.length > 1) {
+
         else {
-            try {
-                data = new String(bytes, "UTF-8");
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
-            }
+            data = new String(bytes, StandardCharsets.UTF_8);
             receiveMessage(data);
         }
     }
@@ -196,27 +187,22 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         hideSoftKeyboard();
     }
 
-
-    public void sendMultimediaMessage(Bitmap multimediaMessage) {
+    public void sendPhoto() {
         // Called when picture taken
-
-        int width = multimediaMessage.getWidth();
-        int height = multimediaMessage.getHeight();
-
-        int size = multimediaMessage.getRowBytes() * multimediaMessage.getHeight();
-        ByteBuffer byteBuffer = ByteBuffer.allocate(size);
-        multimediaMessage.copyPixelsToBuffer(byteBuffer);
-        byte[] byteArray = byteBuffer.array();
-
-
-        // Send image byte information to the arduino
-        mArduino.send(byteArray);
-
+        BitmapFactory.Options opts = new BitmapFactory.Options();
+        opts.inSampleSize = IMAGE_DISPLAY_SCALE_FACTOR ;
+        Bitmap multimediaMessage = BitmapFactory.decodeFile(currentPhotoPath, opts );
         // Displaying multimedia object (Only support image for now).
-        MessageCard card = new MessageCard(multimediaMessage, "sent");
+        MessageCard card = new MessageCard(multimediaMessage, currentPhotoPath, "sent");
         mMessageCardList.add(card);
         mMessengerAdapter.notifyDataSetChanged();
         hideSoftKeyboard();
+
+        // Send to Arduino
+        ByteBuffer byteBuffer = ByteBuffer.allocate(multimediaMessage.getByteCount());
+        multimediaMessage.copyPixelsToBuffer(byteBuffer);
+        byte[] byteArray = byteBuffer.array();
+        mArduino.send(byteArray);
     }
 
     private void hideSoftKeyboard() {
@@ -229,34 +215,26 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     private void receiveImage(Bitmap bmp) {
         // Displaying multimedia object (Only support image for now).
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(MessengerActivity.this, "received image", Toast.LENGTH_SHORT).show();
-                MessageCard card = new MessageCard(bmp, "received");
-                mMessageCardList.add(card);
-                mMessengerAdapter.notifyDataSetChanged();
-            }
+        runOnUiThread(() -> {
+            Toast.makeText(MessengerActivity.this, "received image", Toast.LENGTH_SHORT).show();
+            MessageCard card = new MessageCard(bmp, "received");
+            mMessageCardList.add(card);
+            mMessengerAdapter.notifyDataSetChanged();
         });
 
     }
 
     private void receiveMessage(String msg) {
 
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Log.d(TAG, "run msg: " + msg);
-                MessageCard msgCard = new MessageCard(msg, "received");
-                mMessageCardList.add(msgCard);
-                mMessengerAdapter.notifyDataSetChanged();
-                isMessageReceived = false;
-            }
+        runOnUiThread(() -> {
+            Log.d(TAG, "run msg: " + msg);
+            MessageCard msgCard = new MessageCard(msg, "received");
+            mMessageCardList.add(msgCard);
+            mMessengerAdapter.notifyDataSetChanged();
+            isMessageReceived = false;
         });
-//        Log.d(TAG, "onArduinoMessage: isMessageReceived: " + isMessageReceived);
         lm.smoothScrollToPosition(mMessageFeed, null, mMessageCardList.size());
     }
-
 
     @Override
     public boolean onSupportNavigateUp() {
@@ -269,54 +247,66 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         super.onBackPressed();
     }
 
+
+    // *********************************************************************************************
+    // Function: Take picture
+
+    String currentPhotoPath;
+    private File createImageFile() throws IOException {
+        // Create an image file name
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(
+                imageFileName,  /* prefix */
+                ".jpg",         /* suffix */
+                storageDir      /* directory */
+        );
+
+        // Save a file: path for use with ACTION_VIEW intents
+        currentPhotoPath = image.getAbsolutePath();
+        Toast.makeText(this, "image stored.", Toast.LENGTH_SHORT).show();
+        return image;
+    }
+
+    static final int REQUEST_TAKE_PHOTO = 1;
     public void takePicture() {
-        Intent imageTakeIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-
-        if (imageTakeIntent.resolveActivity(getPackageManager()) != null) {
-            startActivityForResult(imageTakeIntent, REQUEST_IMAGE_CAPTUTRE);
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        // Ensure that there's a camera activity to handle the intent
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            // Create the File where the photo should go
+            File photoFile = null;
+            try {
+                photoFile = createImageFile();
+            } catch (IOException ex) {
+                Toast.makeText(this, "Error while creating the File", Toast.LENGTH_SHORT).show();
+            }
+            // Continue only if the File was successfully created
+            if (photoFile != null) {
+                Uri photoURI = FileProvider.getUriForFile(this,
+                        "com.example.android.fileprovider",
+                        photoFile);
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
+                Toast.makeText(this, "File created.", Toast.LENGTH_SHORT).show();
+            }
         }
+
     }
 
-    @Override
+        @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-
-        if (requestCode == REQUEST_IMAGE_CAPTUTRE && resultCode == RESULT_OK) {
-            Bundle extras = data.getExtras();
-
-            Bitmap imageBitmap = (Bitmap) extras.get("data");
-            Log.d(TAG, "bitmap allocation bytecount: " + imageBitmap.getAllocationByteCount());
-            Log.d(TAG, "bitmap bytecount: " + imageBitmap.getByteCount());
-            Log.d(TAG, "bitmap width: " + imageBitmap.getWidth());
-            Log.d(TAG, "bitmap height: " + imageBitmap.getHeight());
-            // HERE put a code that sends the picture and displays in the messenger.
-
-            // Compress image (arduino memory is not very large)
-//            ByteArrayOutputStream out = new ByteArrayOutputStream();
-//            imageBitmap.compress(Bitmap.CompressFormat.JPEG, 10, out);
-//            byte[] img = out.toByteArray();
-//            Bitmap compressedBitmap = BitmapFactory.decodeByteArray(img, 0, img.length);
-
-//            Log.d(TAG, "compressedBitmap allocation bytecount: " + compressedBitmap.getAllocationByteCount());
-//            Log.d(TAG, "compressedBitmap bytecount: " + compressedBitmap.getByteCount());
-//            Log.d(TAG, "compressedBitmap width: " + compressedBitmap.getWidth());
-//            Log.d(TAG, "compressedBitmap height: " + compressedBitmap.getHeight());
-
-            Bitmap compressedBitmap = getResizedBitmap(imageBitmap, 60);
-
-            Log.d(TAG, "compressedBitmap allocation bytecount: " + compressedBitmap.getAllocationByteCount());
-            Log.d(TAG, "compressedBitmap bytecount: " + compressedBitmap.getByteCount());
-            Log.d(TAG, "compressedBitmap width: " + compressedBitmap.getWidth());
-            Log.d(TAG, "compressedBitmap height: " + compressedBitmap.getHeight());
-            sendMultimediaMessage(compressedBitmap);
-            Toast.makeText(this, "Picture Taken", Toast.LENGTH_SHORT).show();
-        }
+        super.onActivityResult(requestCode, resultCode, data);
+            sendPhoto();
     }
+    // END: take picture
+    // *********************************************************************************************
 
     public Bitmap getResizedBitmap(Bitmap image, int maxSize) {
         int width = image.getWidth();
         int height = image.getHeight();
 
-        float bitmapRatio = (float)width / (float) height;
+        float bitmapRatio = (float) width / (float) height;
         if (bitmapRatio > 1) {
             width = maxSize;
             height = (int) (width / bitmapRatio);

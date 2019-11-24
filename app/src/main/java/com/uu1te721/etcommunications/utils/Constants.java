@@ -9,4 +9,5 @@ public class Constants {
 
     // for taking picutre
     public static final int REQUEST_IMAGE_CAPTUTRE = 101;
+    public static final int IMAGE_DISPLAY_SCALE_FACTOR = 10;
 }

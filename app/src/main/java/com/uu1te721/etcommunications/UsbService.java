@@ -19,8 +19,10 @@ import com.felhr.usbserial.UsbSerialDevice;
 import com.felhr.usbserial.UsbSerialInterface;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import static com.uu1te721.etcommunications.utils.Constants.TAG;
 
@@ -61,13 +63,9 @@ public class UsbService extends Service {
     private UsbSerialInterface.UsbReadCallback mCallback = new UsbSerialInterface.UsbReadCallback() {
         @Override
         public void onReceivedData(byte[] arg0) {
-            try {
-                String data = new String(arg0, "UTF-8");
-                if (mHandler != null)
-                    mHandler.obtainMessage(MESSAGE_FROM_SERIAL_PORT, data).sendToTarget();
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
-            }
+            String data = new String(arg0, StandardCharsets.UTF_8);
+            if (mHandler != null)
+                mHandler.obtainMessage(MESSAGE_FROM_SERIAL_PORT, data).sendToTarget();
         }
     };
 
@@ -77,7 +75,7 @@ public class UsbService extends Service {
     private UsbSerialInterface.UsbCTSCallback ctsCallback = new UsbSerialInterface.UsbCTSCallback() {
         @Override
         public void onCTSChanged(boolean state) {
-            if(mHandler != null)
+            if (mHandler != null)
                 mHandler.obtainMessage(CTS_CHANGE).sendToTarget();
         }
     };
@@ -88,7 +86,7 @@ public class UsbService extends Service {
     private UsbSerialInterface.UsbDSRCallback dsrCallback = new UsbSerialInterface.UsbDSRCallback() {
         @Override
         public void onDSRChanged(boolean state) {
-            if(mHandler != null)
+            if (mHandler != null)
                 mHandler.obtainMessage(DSR_CHANGE).sendToTarget();
         }
     };
@@ -99,30 +97,36 @@ public class UsbService extends Service {
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context arg0, Intent arg1) {
-            if (arg1.getAction().equals(ACTION_USB_PERMISSION)) {
-                boolean granted = arg1.getExtras().getBoolean(UsbManager.EXTRA_PERMISSION_GRANTED);
-                if (granted) // User accepted our USB connection. Try to open the device as a serial port
-                {
-                    Intent intent = new Intent(ACTION_USB_PERMISSION_GRANTED);
+            switch (Objects.requireNonNull(arg1.getAction())) {
+                case ACTION_USB_PERMISSION:
+                    boolean granted = Objects.requireNonNull(arg1.getExtras()).getBoolean(UsbManager.EXTRA_PERMISSION_GRANTED);
+                    if (granted) // User accepted our USB connection. Try to open the device as a serial port
+                    {
+                        Intent intent = new Intent(ACTION_USB_PERMISSION_GRANTED);
+                        arg0.sendBroadcast(intent);
+                        connection = usbManager.openDevice(device);
+                        new ConnectionThread().start();
+                    } else // User not accepted our USB connection. Send an Intent to the Main Activity
+                    {
+                        Intent intent = new Intent(ACTION_USB_PERMISSION_NOT_GRANTED);
+                        arg0.sendBroadcast(intent);
+                    }
+                    break;
+                case ACTION_USB_ATTACHED:
+                    if (!serialPortConnected)
+                        findSerialPortDevice(); // A USB device has been attached. Try to open it as a Serial port
+                    break;
+                case ACTION_USB_DETACHED:
+                    // Usb device was disconnected. send an intent to the Main Activity
+                    Intent intent = new Intent(ACTION_USB_DISCONNECTED);
                     arg0.sendBroadcast(intent);
-                    connection = usbManager.openDevice(device);
-                    new ConnectionThread().start();
-                } else // User not accepted our USB connection. Send an Intent to the Main Activity
-                {
-                    Intent intent = new Intent(ACTION_USB_PERMISSION_NOT_GRANTED);
-                    arg0.sendBroadcast(intent);
-                }
-            } else if (arg1.getAction().equals(ACTION_USB_ATTACHED)) {
-                if (!serialPortConnected)
-                    findSerialPortDevice(); // A USB device has been attached. Try to open it as a Serial port
-            } else if (arg1.getAction().equals(ACTION_USB_DETACHED)) {
-                // Usb device was disconnected. send an intent to the Main Activity
-                Intent intent = new Intent(ACTION_USB_DISCONNECTED);
-                arg0.sendBroadcast(intent);
-                if (serialPortConnected) {
-                    serialPort.close();
-                }
-                serialPortConnected = false;
+                    if (serialPortConnected) {
+                        serialPort.close();
+                    }
+                    serialPortConnected = false;
+                    break;
+                default:
+                    throw new IllegalStateException("Unexpected value: " + arg1.getAction());
             }
         }
     };
@@ -205,13 +209,13 @@ public class UsbService extends Service {
                     device = null;
                 }
             }
-            if (device==null) {
+            if (device == null) {
                 // There are no USB devices connected (but usb host were listed). Send an intent to MainActivity.
                 Intent intent = new Intent(ACTION_NO_USB);
                 sendBroadcast(intent);
             }
         } else {
-            Log.d(TAG, "findSerialPortDevice() usbManager returned empty device list." );
+            Log.d(TAG, "findSerialPortDevice() usbManager returned empty device list.");
             // There is no USB devices connected. Send an intent to MainActivity
             Intent intent = new Intent(ACTION_NO_USB);
             sendBroadcast(intent);
@@ -230,7 +234,7 @@ public class UsbService extends Service {
      * Request user permission. The response will be received in the BroadcastReceiver
      */
     private void requestUserPermission() {
-        Log.d(TAG, String.format("requestUserPermission(%X:%X)", device.getVendorId(), device.getProductId() ) );
+        Log.d(TAG, String.format("requestUserPermission(%X:%X)", device.getVendorId(), device.getProductId()));
         PendingIntent mPendingIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
         usbManager.requestPermission(device, mPendingIntent);
     }
@@ -256,12 +260,8 @@ public class UsbService extends Service {
                     serialPort.setDataBits(UsbSerialInterface.DATA_BITS_8);
                     serialPort.setStopBits(UsbSerialInterface.STOP_BITS_1);
                     serialPort.setParity(UsbSerialInterface.PARITY_NONE);
-                    /**
-                     * Current flow control Options:
-                     * UsbSerialInterface.FLOW_CONTROL_OFF
-                     * UsbSerialInterface.FLOW_CONTROL_RTS_CTS only for CP2102 and FT232
-                     * UsbSerialInterface.FLOW_CONTROL_DSR_DTR only for CP2102 and FT232
-                     */
+
+
                     serialPort.setFlowControl(UsbSerialInterface.FLOW_CONTROL_OFF);
                     serialPort.read(mCallback);
                     serialPort.getCTS(ctsCallback);

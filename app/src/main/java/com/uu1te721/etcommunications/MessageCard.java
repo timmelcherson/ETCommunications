@@ -3,11 +3,11 @@ package com.uu1te721.etcommunications;
 import android.graphics.Bitmap;
 import android.util.Log;
 
-
 import static com.uu1te721.etcommunications.utils.Constants.TAG;
 // TODO: This only handles pictures. Thus the variable "mMultimediaFile" is not general for audio, etc.
 
 class MessageCard {
+    private String photopath;
     private Bitmap mMultimediaFile;
     private String mText;
     private String messageDirection;
@@ -18,17 +18,29 @@ class MessageCard {
         this.messageDirection = direction;
     }
 
-    // Constructor for multimedia messages
     MessageCard(Bitmap mMultimediaFile, String direction) {
         this.mMultimediaFile = mMultimediaFile;
         this.messageDirection = direction;
         this.mText = "image";
     }
 
+    // Constructor for multimedia messages
+    MessageCard(Bitmap mMultimediaFile, String photopath, String direction) {
+        this.mMultimediaFile = mMultimediaFile;
+        this.messageDirection = direction;
+        this.photopath = photopath;
+        this.mText = "image";
+    }
+
     Boolean hasPicture(int index) {
-        Log.d(TAG, "bitmap of item at position " + index + " NOT null in hasPicture?:  " + String.valueOf(this.mMultimediaFile != null));
         return this.mMultimediaFile != null;
     }
+
+
+    String getPhotoPath(){
+        return this.photopath;
+    }
+
 
     Bitmap getPicture() {
         return this.mMultimediaFile;

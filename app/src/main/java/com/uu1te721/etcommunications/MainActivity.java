@@ -1,12 +1,11 @@
 package com.uu1te721.etcommunications;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.linroid.filtermenu.library.FilterMenu;
 import com.linroid.filtermenu.library.FilterMenuLayout;
@@ -15,24 +14,13 @@ public class MainActivity extends AppCompatActivity {
 
     private FilterMenuLayout mLayout;
 
-    private TextView tv1, tv3, tv4, tv5, tv6, tv7;
-
-
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mLayout = (FilterMenuLayout) findViewById(R.id.filter_menu);
-        tv1 = findViewById(R.id.device_list);
-        tv3 = findViewById(R.id.device_id_tv);
-        tv4 = findViewById(R.id.vendor_tv);
-        tv5 = findViewById(R.id.product_tv);
-        tv6 = findViewById(R.id.class_tv);
-        tv7 = findViewById(R.id.sublcass_tv);
-
+        mLayout = findViewById(R.id.filter_menu);
 
         buildFilterMenu();
     }
