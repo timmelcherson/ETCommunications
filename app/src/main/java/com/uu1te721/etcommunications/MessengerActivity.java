@@ -34,6 +34,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -43,7 +44,10 @@ import me.aflak.arduino.ArduinoListener;
 import static com.uu1te721.etcommunications.utils.Constants.REQUEST_IMAGE_CAPTUTRE;
 import static com.uu1te721.etcommunications.utils.Constants.IMAGE_DISPLAY_SCALE_FACTOR;
 
+import static com.uu1te721.etcommunications.utils.Constants.REQUEST_TAKE_PHOTO;
 import static com.uu1te721.etcommunications.utils.Constants.TAG;
+import static com.uu1te721.etcommunications.utils.Constants.TRANSMISSION_FLAG_IMAGE;
+import static com.uu1te721.etcommunications.utils.Constants.TRANSMISSION_FLAG_TEXT;
 
 public class MessengerActivity extends AppCompatActivity implements View.OnClickListener, ArduinoListener {
 
@@ -134,19 +138,84 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     }
 
+    private void logBytes(byte[] arr) {
+
+        String str = "";
+        String innerStr = "";
+
+        if (arr.length > 50) {
+            for (int i = 1; i <= 10; i++) {
+                str = str.concat(Integer.toBinaryString(arr[i - 1] & 255 | 256).substring(1) + " ");
+
+                if (i >= arr.length - 4) {
+                    innerStr = innerStr.concat(Integer.toBinaryString(arr[i - 1] & 255 | 256).substring(1) + " ");
+                    if (i >= arr.length) {
+                        Log.d(TAG, innerStr);
+                        innerStr = "";
+                    }
+                } else if (i % 4 == 0) {
+                    Log.d(TAG, str);
+                    str = "";
+                }
+            }
+            Log.d(TAG, ". . .");
+            for (int i = arr.length - 10; i <= arr.length; i++) {
+                str = str.concat(Integer.toBinaryString(arr[i - 1] & 255 | 256).substring(1) + " ");
+
+                if (i >= arr.length - 4) {
+                    innerStr = innerStr.concat(Integer.toBinaryString(arr[i - 1] & 255 | 256).substring(1) + " ");
+                    if (i >= arr.length) {
+                        Log.d(TAG, innerStr);
+                        innerStr = "";
+                    }
+                } else if (i % 4 == 0) {
+                    Log.d(TAG, str);
+                    str = "";
+                }
+            }
+        } else {
+            for (int i = 1; i <= arr.length; i++) {
+                str = str.concat(Integer.toBinaryString(arr[i - 1] & 255 | 256).substring(1) + " ");
+
+                if (i >= arr.length - 4) {
+                    innerStr = innerStr.concat(Integer.toBinaryString(arr[i - 1] & 255 | 256).substring(1) + " ");
+                    if (i >= arr.length) {
+                        Log.d(TAG, innerStr);
+                        innerStr = "";
+                    }
+                } else if (i % 4 == 0) {
+                    Log.d(TAG, str);
+                    str = "";
+                }
+            }
+        }
+
+    }
+
     @Override
     public void onArduinoMessage(byte[] bytes) {
         String data;
 
-        if (bytes.length > 40) {
-            Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-            receiveImage(bmp);
-        }
+        Log.d(TAG, "onArduinoMessage: LOGGING RECEIVED BYTES:");
+        logBytes(bytes);
 
-        else {
-            data = new String(bytes, StandardCharsets.UTF_8);
-            receiveMessage(data);
-        }
+        char flag = (char) bytes[0];
+
+        runOnUiThread(() -> {
+            Toast.makeText(this, "FLAG: " + flag, Toast.LENGTH_SHORT).show();
+        });
+        Log.d(TAG, "FLAG: " + flag);
+        receptionRouter(flag);
+
+//        if (bytes.length > 40) {
+//            Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+//            receiveImage(bmp);
+//        } else {
+//            data = new String(bytes, StandardCharsets.UTF_8);
+//            receiveMessage(data);
+//        }
+        data = new String(bytes, StandardCharsets.UTF_8);
+        receiveMessage(data);
     }
 
     @Override
@@ -169,7 +238,31 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         mArduino.close();
     }
 
+    public void receptionRouter(char flag) {
+
+
+        switch (flag) {
+
+            case 'i':
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Received Image", Toast.LENGTH_SHORT).show();
+                });
+
+                Log.d(TAG, "Received Image");
+                break;
+
+            case 't':
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Received Text", Toast.LENGTH_SHORT).show();
+                });
+
+                Log.d(TAG, "Received Text");
+                break;
+        }
+    }
+
     public void sendMessage() {
+
 
         if (mWriteMessageEt.getText().toString().equals(""))
             return;
@@ -177,21 +270,28 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         // This method called when send button pressed.
         String msg = mWriteMessageEt.getText().toString();
 
-        mArduino.send(msg.getBytes());
-
-        MessageCard msgCard = new MessageCard(msg, "sent");
-        mMessageCardList.add(msgCard);
-        mMessengerAdapter.notifyDataSetChanged();
-        lm.smoothScrollToPosition(mMessageFeed, null, mMessageCardList.size() - 1);
-        mWriteMessageEt.setText("");
-        hideSoftKeyboard();
+        byte[] arrayForTransmission = addTransmissionFlagToByteArray(TRANSMISSION_FLAG_TEXT, msg.getBytes());
+//        Log.d(TAG, "sendMessage: LOGGING TRANSMISSION BYTES:");
+//        logBytes(arrayForTransmission);
+        if ((char) arrayForTransmission[0] == 't') {
+            mArduino.send(arrayForTransmission);
+            MessageCard msgCard = new MessageCard(msg, "sent");
+            mMessageCardList.add(msgCard);
+            mMessengerAdapter.notifyDataSetChanged();
+            lm.smoothScrollToPosition(mMessageFeed, null, mMessageCardList.size() - 1);
+            mWriteMessageEt.setText("");
+            hideSoftKeyboard();
+        } else {
+            Log.d(TAG, "sendMessage: WRONG FLAG: " + (char) arrayForTransmission[0]);
+        }
     }
 
     public void sendPhoto() {
         // Called when picture taken
         BitmapFactory.Options opts = new BitmapFactory.Options();
-        opts.inSampleSize = IMAGE_DISPLAY_SCALE_FACTOR ;
-        Bitmap multimediaMessage = BitmapFactory.decodeFile(currentPhotoPath, opts );
+        opts.inSampleSize = IMAGE_DISPLAY_SCALE_FACTOR;
+        Bitmap multimediaMessage = BitmapFactory.decodeFile(currentPhotoPath, opts);
+        multimediaMessage = getResizedBitmap(multimediaMessage, 100);
         // Displaying multimedia object (Only support image for now).
         MessageCard card = new MessageCard(multimediaMessage, currentPhotoPath, "sent");
         mMessageCardList.add(card);
@@ -202,7 +302,20 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         ByteBuffer byteBuffer = ByteBuffer.allocate(multimediaMessage.getByteCount());
         multimediaMessage.copyPixelsToBuffer(byteBuffer);
         byte[] byteArray = byteBuffer.array();
-        mArduino.send(byteArray);
+
+        byte[] arrayForTransmission = addTransmissionFlagToByteArray(TRANSMISSION_FLAG_IMAGE, byteArray);
+        Log.d(TAG, "sendPhoto: LOGGING TRANSMISSION BYTES:");
+        logBytes(arrayForTransmission);
+        Toast.makeText(this, "Sending photo with FLAG: " + (char) arrayForTransmission[0], Toast.LENGTH_SHORT).show();
+        mArduino.send(arrayForTransmission);
+    }
+
+    private byte[] addTransmissionFlagToByteArray(byte flag, byte[] arr) {
+
+        ByteBuffer combined = ByteBuffer.allocate(1 + arr.length);
+        combined.put(flag);
+        combined.put(arr);
+        return combined.array();
     }
 
     private void hideSoftKeyboard() {
@@ -252,6 +365,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     // Function: Take picture
 
     String currentPhotoPath;
+
     private File createImageFile() throws IOException {
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
@@ -265,11 +379,11 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
         // Save a file: path for use with ACTION_VIEW intents
         currentPhotoPath = image.getAbsolutePath();
-        Toast.makeText(this, "image stored.", Toast.LENGTH_SHORT).show();
+//        Toast.makeText(this, "image stored.", Toast.LENGTH_SHORT).show();
         return image;
     }
 
-    static final int REQUEST_TAKE_PHOTO = 1;
+
     public void takePicture() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Ensure that there's a camera activity to handle the intent
@@ -279,7 +393,8 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
             try {
                 photoFile = createImageFile();
             } catch (IOException ex) {
-                Toast.makeText(this, "Error while creating the File", Toast.LENGTH_SHORT).show();
+                ex.printStackTrace();
+//                Toast.makeText(this, "Error while creating the File", Toast.LENGTH_SHORT).show();
             }
             // Continue only if the File was successfully created
             if (photoFile != null) {
@@ -288,15 +403,17 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
                         photoFile);
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
                 startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
-                Toast.makeText(this, "File created.", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(this, "File created.", Toast.LENGTH_SHORT).show();
             }
         }
 
     }
 
-        @Override
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        Log.d(TAG, "onActivityResult: here");
+        if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK)
             sendPhoto();
     }
     // END: take picture

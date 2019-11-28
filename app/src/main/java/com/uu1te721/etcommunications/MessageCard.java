@@ -21,7 +21,7 @@ class MessageCard {
     MessageCard(Bitmap mMultimediaFile, String direction) {
         this.mMultimediaFile = mMultimediaFile;
         this.messageDirection = direction;
-        this.mText = "image";
+        this.mText = "";
     }
 
     // Constructor for multimedia messages
@@ -29,7 +29,7 @@ class MessageCard {
         this.mMultimediaFile = mMultimediaFile;
         this.messageDirection = direction;
         this.photopath = photopath;
-        this.mText = "image";
+        this.mText = "";
     }
 
     Boolean hasPicture(int index) {
