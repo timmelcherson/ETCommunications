@@ -29,6 +29,7 @@ import com.felhr.usbserial.UsbSerialDevice;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -37,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Random;
 
 import me.aflak.arduino.Arduino;
 import me.aflak.arduino.ArduinoListener;
@@ -87,14 +89,13 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         mWriteMessageEt = findViewById(R.id.write_message_et);
         mMessageFeed = findViewById(R.id.message_feed_layout);
 
-        mArduino = new Arduino(this);
+        mArduino = new Arduino(this, 115200);
         mArduino.addVendorId(10755);
         mArduino.addVendorId(9025);
         mArduino.setArduinoListener(this);
 
         mSendBtn.setOnClickListener(this);
         mCameraBtn.setOnClickListener(this);
-
 
         buildRecyclerView();
     }
@@ -240,7 +241,6 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     public void receptionRouter(char flag) {
 
-
         switch (flag) {
 
             case 'i':
@@ -263,18 +263,19 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     public void sendMessage() {
 
-
         if (mWriteMessageEt.getText().toString().equals(""))
             return;
 
         // This method called when send button pressed.
         String msg = mWriteMessageEt.getText().toString();
+        Log.d(TAG, "sendMessage - msg in bytes (before flag): " + Arrays.toString(msg.getBytes()));
 
         byte[] arrayForTransmission = addTransmissionFlagToByteArray(TRANSMISSION_FLAG_TEXT, msg.getBytes());
 //        Log.d(TAG, "sendMessage: LOGGING TRANSMISSION BYTES:");
 //        logBytes(arrayForTransmission);
         if ((char) arrayForTransmission[0] == 't') {
             mArduino.send(arrayForTransmission);
+            Log.d(TAG, "sent this msg: " + Arrays.toString(arrayForTransmission));
             MessageCard msgCard = new MessageCard(msg, "sent");
             mMessageCardList.add(msgCard);
             mMessengerAdapter.notifyDataSetChanged();
@@ -302,9 +303,9 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         ByteBuffer byteBuffer = ByteBuffer.allocate(multimediaMessage.getByteCount());
         multimediaMessage.copyPixelsToBuffer(byteBuffer);
         byte[] byteArray = byteBuffer.array();
-
         byte[] arrayForTransmission = addTransmissionFlagToByteArray(TRANSMISSION_FLAG_IMAGE, byteArray);
-        Log.d(TAG, "sendPhoto: LOGGING TRANSMISSION BYTES:");
+
+        Log.d(TAG, "sendPhoto: LOGGING TRANSMISSION BYTES, size of picture: " + multimediaMessage.getByteCount());
         logBytes(arrayForTransmission);
         Toast.makeText(this, "Sending photo with FLAG: " + (char) arrayForTransmission[0], Toast.LENGTH_SHORT).show();
         mArduino.send(arrayForTransmission);
@@ -312,9 +313,10 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     private byte[] addTransmissionFlagToByteArray(byte flag, byte[] arr) {
 
-        ByteBuffer combined = ByteBuffer.allocate(1 + arr.length);
+        ByteBuffer combined = ByteBuffer.allocate(1 + arr.length + 1);
         combined.put(flag);
         combined.put(arr);
+        combined.put((byte)'>');
         return combined.array();
     }
 
@@ -420,6 +422,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     // *********************************************************************************************
 
     public Bitmap getResizedBitmap(Bitmap image, int maxSize) {
+
         int width = image.getWidth();
         int height = image.getHeight();
 
