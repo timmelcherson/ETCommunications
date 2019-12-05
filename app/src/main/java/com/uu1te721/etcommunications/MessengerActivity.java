@@ -26,6 +26,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.felhr.usbserial.UsbSerialDevice;
+import com.felhr.usbserial.UsbSerialInterface;
 
 import java.io.File;
 import java.io.IOException;
@@ -40,8 +41,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
+
 import me.aflak.arduino.Arduino;
-import me.aflak.arduino.ArduinoListener;
 
 import static com.uu1te721.etcommunications.utils.Constants.REQUEST_IMAGE_CAPTUTRE;
 import static com.uu1te721.etcommunications.utils.Constants.IMAGE_DISPLAY_SCALE_FACTOR;
@@ -51,7 +52,7 @@ import static com.uu1te721.etcommunications.utils.Constants.TAG;
 import static com.uu1te721.etcommunications.utils.Constants.TRANSMISSION_FLAG_IMAGE;
 import static com.uu1te721.etcommunications.utils.Constants.TRANSMISSION_FLAG_TEXT;
 
-public class MessengerActivity extends AppCompatActivity implements View.OnClickListener, ArduinoListener {
+public class MessengerActivity extends AppCompatActivity implements View.OnClickListener, CustomArduinoListener { //UsbSerialInterface.UsbReadCallback
 
 
     private Button mSendBtn, mCameraBtn;
@@ -66,8 +67,8 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     private List<String> mMessageList = new ArrayList<>();
     private List<MessageCard> mMessageCardList = new ArrayList<>();
     private UsbService usbService;
-    private Arduino mArduino;
-    private ArduinoListener mArduinoListener;
+    private CustomArduino mArduino;
+    private CustomArduinoListener mArduinoListener;
     private boolean isMessageReceived = false;
 
     @Override
@@ -89,9 +90,10 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         mWriteMessageEt = findViewById(R.id.write_message_et);
         mMessageFeed = findViewById(R.id.message_feed_layout);
 
-        mArduino = new Arduino(this, 115200);
+        mArduino = new CustomArduino(this, 115200);
         mArduino.addVendorId(10755);
         mArduino.addVendorId(9025);
+        mArduino.setDelimiter((byte) '\r');
         mArduino.setArduinoListener(this);
 
         mSendBtn.setOnClickListener(this);
@@ -138,6 +140,77 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     public void onArduinoDetached() {
 
     }
+
+//    List<Byte> bytesReceived = new ArrayList<>();
+//    byte delimiter = '\n';
+//
+//    @Override
+//    public void onReceivedData(byte[] bytes) {
+//        Log.d(TAG, "MESSENGER ONRECEIVEDDATA");
+//        int matchnr = 1;
+//        Log.d(TAG, "--------------------------");
+//        for (byte bt : bytes) {
+//            Log.d(TAG, String.valueOf((char) bt));
+//            if (bt == (char) '\n') {
+//                Log.d(TAG, "MATCH NEWLLINE");
+//            }
+//            if (bt == (char) '\r') {
+//                Log.d(TAG, "MATCH CARRIAGE RETURN");
+//            }
+//        }
+//        Log.d(TAG, "--------------------------");
+//        Log.d(TAG, Arrays.toString(bytes));
+//        Log.d(TAG, "--------------------------");
+//
+//        if (bytes.length != 0) {
+//            List<Integer> idx = indexOf(bytes, delimiter);
+//            if (idx.isEmpty()) {
+//                bytesReceived.addAll(toByteList(bytes));
+//            } else {
+//                int offset = 0;
+//                for (int index : idx) {
+//                    byte[] tmp = Arrays.copyOfRange(bytes, offset, index);
+//                    bytesReceived.addAll(toByteList(tmp));
+//                    if (mArduinoListener != null) {
+//                        mArduinoListener.onArduinoMessage(toByteArray(bytesReceived));
+//                    }
+//                    bytesReceived.clear();
+//                    offset += index + 1;
+//                }
+//
+//                if (offset < bytes.length - 1) {
+//                    byte[] tmp = Arrays.copyOfRange(bytes, offset, bytes.length);
+//                    bytesReceived.addAll(toByteList(tmp));
+//                }
+//            }
+//        }
+//    }
+//
+//    private List<Integer> indexOf(byte[] bytes, byte b) {
+//        List<Integer> idx = new ArrayList<>();
+//        for (int i = 0; i < bytes.length; i++) {
+//            if (bytes[i] == b) {
+//                idx.add(i);
+//            }
+//        }
+//        return idx;
+//    }
+//
+//    private List<Byte> toByteList(byte[] bytes) {
+//        List<Byte> list = new ArrayList<>();
+//        for (byte b : bytes) {
+//            list.add(b);
+//        }
+//        return list;
+//    }
+//
+//    private byte[] toByteArray(List<Byte> bytes) {
+//        byte[] array = new byte[bytes.size()];
+//        for (int i = 0; i < bytes.size(); i++) {
+//            array[i] = bytes.get(i);
+//        }
+//        return array;
+//    }
 
     private void logBytes(byte[] arr) {
 
@@ -195,18 +268,34 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     @Override
     public void onArduinoMessage(byte[] bytes) {
-        String data;
+//        String data;
+        Log.d(TAG, "MESSENGER ONARDUINOMESSAGE");
 
-        Log.d(TAG, "onArduinoMessage: LOGGING RECEIVED BYTES:");
-        logBytes(bytes);
-
+        if (bytes.length != 0) {
+            Log.d(TAG, "CUSTOMARDUINO");
+            Log.d(TAG, "--------------------------");
+            Log.d(TAG, Arrays.toString(bytes));
+            Log.d(TAG, "--------------------------");
+        }
+//
+//
         char flag = (char) bytes[0];
 
-        runOnUiThread(() -> {
-            Toast.makeText(this, "FLAG: " + flag, Toast.LENGTH_SHORT).show();
-        });
         Log.d(TAG, "FLAG: " + flag);
-        receptionRouter(flag);
+        switch (flag) {
+
+            case 'i':
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Received Image", Toast.LENGTH_SHORT).show();
+                });
+
+                Log.d(TAG, "Received Image");
+                break;
+
+            case 't':
+                receiveMessage(bytes);
+                break;
+        }
 
 //        if (bytes.length > 40) {
 //            Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
@@ -215,15 +304,15 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 //            data = new String(bytes, StandardCharsets.UTF_8);
 //            receiveMessage(data);
 //        }
-        data = new String(bytes, StandardCharsets.UTF_8);
-        receiveMessage(data);
+
+//        receiveMessage(data);
     }
 
     @Override
     public void onArduinoOpened() {
         // you can start the communication
-        String str = "Hello Arduino";
-        mArduino.send(str.getBytes());
+//        String str = "Hello CustomArduino";
+//        mArduino.send(str.getBytes());
     }
 
     @Override
@@ -299,7 +388,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         mMessengerAdapter.notifyDataSetChanged();
         hideSoftKeyboard();
 
-        // Send to Arduino
+        // Send to CustomArduino
         ByteBuffer byteBuffer = ByteBuffer.allocate(multimediaMessage.getByteCount());
         multimediaMessage.copyPixelsToBuffer(byteBuffer);
         byte[] byteArray = byteBuffer.array();
@@ -316,7 +405,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         ByteBuffer combined = ByteBuffer.allocate(1 + arr.length + 1);
         combined.put(flag);
         combined.put(arr);
-        combined.put((byte)'>');
+        combined.put((byte) '>');
         return combined.array();
     }
 
@@ -339,7 +428,9 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     }
 
-    private void receiveMessage(String msg) {
+    private void receiveMessage(byte[] byteArray) {
+
+        String msg = new String(byteArray);
 
         runOnUiThread(() -> {
             Log.d(TAG, "run msg: " + msg);
