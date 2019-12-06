@@ -79,7 +79,7 @@ public class MessengerRecyclerViewAdapter extends RecyclerView.Adapter<Messenger
 
         // Putting text or multimedia object to bubbles.
         SpannableStringBuilder ssb = new SpannableStringBuilder();
-        Log.d(TAG, "bitmap of item at position " + position + " null in recycler?: " + item.hasPicture(position));
+//        Log.d(TAG, "bitmap of item at position " + position + " null in recycler?: " + item.hasPicture(position));
         if (item.hasPicture(position)) {
             ssb.append(" ");
             Bitmap pic = item.getPicture();

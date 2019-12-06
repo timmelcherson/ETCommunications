@@ -37,7 +37,7 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
     private List<Integer> vendorIds;
     private List<Byte> bytesReceived;
     private byte delimiter;
-    
+
     private static final int DEFAULT_BAUD_RATE = 9600;
     private static final byte DEFAULT_DELIMITER = '\n';
 
@@ -111,15 +111,15 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
         }
     }
 
-    public void setDelimiter(byte delimiter){
+    public void setDelimiter(byte delimiter) {
         this.delimiter = delimiter;
     }
 
-    public void setBaudRate(int baudRate){
+    public void setBaudRate(int baudRate) {
         this.baudRate = baudRate;
     }
 
-    public void addVendorId(int id){
+    public void addVendorId(int id) {
         vendorIds.add(id);
     }
 
@@ -188,60 +188,69 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
         return null;
     }
 
-    private List<Integer> indexOf(byte[] bytes, byte b){
+    private List<Integer> indexOf(byte[] bytes, byte b) {
         List<Integer> idx = new ArrayList<>();
-        for(int i=0 ; i<bytes.length ; i++){
-            if(bytes[i] == b){
+        for (int i = 0; i < bytes.length; i++) {
+            if (bytes[i] == b) {
                 idx.add(i);
             }
         }
         return idx;
     }
 
-    private List<Byte> toByteList(byte[] bytes){
+    private List<Byte> toByteList(byte[] bytes) {
         List<Byte> list = new ArrayList<>();
-        for(byte b : bytes){
+        for (byte b : bytes) {
             list.add(b);
         }
         return list;
     }
 
-    private byte[] toByteArray(List<Byte> bytes){
+    private byte[] toByteArray(List<Byte> bytes) {
         byte[] array = new byte[bytes.size()];
-        for(int i=0 ; i<bytes.size() ; i++){
+        for (int i = 0; i < bytes.size(); i++) {
             array[i] = bytes.get(i);
         }
         return array;
     }
 
     List<Byte> saveArr = new ArrayList<>();
+    boolean isFlagSet = false;
+    char flag = 0;
+
     @Override
     public void onReceivedData(byte[] bytes) {
 
         if (bytes.length != 0) {
 //            Log.d(TAG, "CUSTOMARDUINO");
-            List<Integer> idx = indexOf(bytes, delimiter);
-            if(idx.isEmpty()){
+//            List<Integer> idx = indexOf(bytes, delimiter);
+//            if (!isFlagSet) {
+//                flag = (char) bytes[0];
+//                isFlagSet = true;
+//            }
+//            if(idx.isEmpty()){
 //                Log.d(TAG, "empty?");
-                bytesReceived.addAll(toByteList(bytes));
-                for (byte bt : bytes) {
-                    if (bt == '>') {
+            bytesReceived.addAll(toByteList(bytes));
+            for (byte bt : bytes) {
+                if (bt == '>') {
 //                        Log.d(TAG, "TERMINATE CHARACTER IS HERE");
-                        bytesReceived.remove(0); // Remove the flag
-                        bytesReceived.remove(bytesReceived.size()-1); // Remove the end marker
-                        if(listener != null) {
+//                        bytesReceived.remove(0); // Remove the flag
+                    bytesReceived.remove(bytesReceived.size() - 1); // Remove the end marker
+                    if (listener != null) {
 //                            Log.d(TAG, "send to listener");
-                            listener.onArduinoMessage(toByteArray(bytesReceived));
-                        }
+                        listener.onArduinoMessage(toByteArray(bytesReceived));
                         bytesReceived.clear();
+//                        isFlagSet = false;
+                    }
 //                        Log.d(TAG, "saveArr: " + saveArr.toString());
 //                        Log.d(TAG, "bytesReceived: " + bytesReceived.toString());
-                    }
                 }
+            }
 //                Log.d(TAG, "array: " + bytesReceived.toString());
-            } else{
+//            }
+//        else{
 //                Log.d(TAG, "1");
-                int offset = 0;
+                /*int offset = 0;
                 for(int index : idx){
 //                    Log.d(TAG, "INDEX: " + idx);
                     byte[] tmp = Arrays.copyOfRange(bytes, offset, index);
@@ -258,8 +267,8 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
 //                    Log.d(TAG, "3");
                     byte[] tmp = Arrays.copyOfRange(bytes, offset, bytes.length);
                     bytesReceived.addAll(toByteList(tmp));
-                }
-            }
+                }*/
+//            }
         }
     }
 
@@ -268,9 +277,9 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
     }
 
     private boolean hasId(int id) {
-        Log.i(getClass().getSimpleName(), "Vendor id : "+id);
-        for(int vendorId : vendorIds){
-            if(vendorId==id){
+        Log.i(getClass().getSimpleName(), "Vendor id : " + id);
+        for (int vendorId : vendorIds) {
+            if (vendorId == id) {
                 return true;
             }
         }

@@ -266,10 +266,10 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     }
 
+    boolean isFlagSet = false;
     @Override
     public void onArduinoMessage(byte[] bytes) {
 //        String data;
-        Log.d(TAG, "MESSENGER ONARDUINOMESSAGE");
 
         if (bytes.length != 0) {
             Log.d(TAG, "CUSTOMARDUINO");
@@ -279,9 +279,22 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         }
 //
 //
-        char flag = (char) bytes[0];
+        char flag = 0; // No flag set
 
-        Log.d(TAG, "FLAG: " + flag);
+        if (!isFlagSet) {
+            flag = (char) bytes[0];
+            isFlagSet = true;
+            Log.d(TAG, "Flag is: " + flag);
+        }
+//
+//        for (byte bt : bytes) {
+//            if (bt == 62) {
+//                Log.d(TAG, "End marker detected, transmission complete");
+//            }
+//        }
+        byte[] subArray = Arrays.copyOfRange(bytes, 1, bytes.length);
+
+
         switch (flag) {
 
             case 'i':
@@ -293,19 +306,17 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
                 break;
 
             case 't':
-                receiveMessage(bytes);
+                receiveMessage(subArray);
                 break;
+
+            default:
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "No flag detected", Toast.LENGTH_SHORT).show();
+                });
+                break;
+
         }
-
-//        if (bytes.length > 40) {
-//            Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-//            receiveImage(bmp);
-//        } else {
-//            data = new String(bytes, StandardCharsets.UTF_8);
-//            receiveMessage(data);
-//        }
-
-//        receiveMessage(data);
+        isFlagSet = false;
     }
 
     @Override
@@ -357,7 +368,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
         // This method called when send button pressed.
         String msg = mWriteMessageEt.getText().toString();
-        Log.d(TAG, "sendMessage - msg in bytes (before flag): " + Arrays.toString(msg.getBytes()));
+//        Log.d(TAG, "sendMessage - msg in bytes (before flag): " + Arrays.toString(msg.getBytes()));
 
         byte[] arrayForTransmission = addTransmissionFlagToByteArray(TRANSMISSION_FLAG_TEXT, msg.getBytes());
 //        Log.d(TAG, "sendMessage: LOGGING TRANSMISSION BYTES:");
