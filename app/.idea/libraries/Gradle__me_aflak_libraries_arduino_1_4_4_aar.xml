@@ -1,0 +1,14 @@
+<component name="libraryTable">
+  <library name="Gradle: me.aflak.libraries:arduino:1.4.4@aar">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/f8e25530ae545a8087ae8f5ed6d13e9d/arduino-1.4.4/jars/classes.jar!/" />
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/f8e25530ae545a8087ae8f5ed6d13e9d/arduino-1.4.4/res" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/me.aflak.libraries/arduino/1.4.4/ec226183477fa81d0ce1bab108b01654e21e011a/arduino-1.4.4-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/me.aflak.libraries/arduino/1.4.4/4fb4c63ab25be1a03720a3a20a83c2f4ff2f1dc1/arduino-1.4.4-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

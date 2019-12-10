@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
@@ -28,6 +29,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.felhr.usbserial.UsbSerialDevice;
 import com.felhr.usbserial.UsbSerialInterface;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -392,7 +394,10 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         BitmapFactory.Options opts = new BitmapFactory.Options();
         opts.inSampleSize = IMAGE_DISPLAY_SCALE_FACTOR;
         Bitmap multimediaMessage = BitmapFactory.decodeFile(currentPhotoPath, opts);
-        multimediaMessage = getResizedBitmap(multimediaMessage, 100);
+//        multimediaMessage = getResizedBitmap(multimediaMessage, 100);
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        multimediaMessage.compress(Bitmap.CompressFormat.JPEG, 50, stream);
+        byte[] byteArray = stream.toByteArray();
         // Displaying multimedia object (Only support image for now).
         MessageCard card = new MessageCard(multimediaMessage, currentPhotoPath, "sent");
         mMessageCardList.add(card);
@@ -400,13 +405,13 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         hideSoftKeyboard();
 
         // Send to CustomArduino
-        ByteBuffer byteBuffer = ByteBuffer.allocate(multimediaMessage.getByteCount());
-        multimediaMessage.copyPixelsToBuffer(byteBuffer);
-        byte[] byteArray = byteBuffer.array();
+//        ByteBuffer byteBuffer = ByteBuffer.allocate(multimediaMessage.getByteCount());
+//        multimediaMessage.copyPixelsToBuffer(byteBuffer);
+//        byte[] byteArray = byteBuffer.array();
         byte[] arrayForTransmission = addTransmissionFlagToByteArray(TRANSMISSION_FLAG_IMAGE, byteArray);
-
+//        receiveImage(byteArray);
         Log.d(TAG, "sendPhoto: LOGGING TRANSMISSION BYTES, size of picture: " + multimediaMessage.getByteCount());
-        logBytes(arrayForTransmission);
+//        logBytes(arrayForTransmission);
         Toast.makeText(this, "Sending photo with FLAG: " + (char) arrayForTransmission[0], Toast.LENGTH_SHORT).show();
         mArduino.send(arrayForTransmission);
     }
@@ -428,8 +433,14 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         }
     }
 
-    private void receiveImage(Bitmap bmp) {
+    private void receiveImage(byte[] bitmapArray) {
         // Displaying multimedia object (Only support image for now).
+        logBytes(bitmapArray);
+        Bitmap bmp = BitmapFactory.decodeByteArray(bitmapArray, 0, bitmapArray.length);
+//        BitmapFactory.Options options = new BitmapFactory.Options();
+//        options.inMutable = true;
+//        Bitmap bmp = BitmapFactory.decodeByteArray(bitmapArray, 0, bitmapArray.length, options);
+//        Canvas canvas = new Canvas(bmp);
         runOnUiThread(() -> {
             Toast.makeText(MessengerActivity.this, "received image", Toast.LENGTH_SHORT).show();
             MessageCard card = new MessageCard(bmp, "received");

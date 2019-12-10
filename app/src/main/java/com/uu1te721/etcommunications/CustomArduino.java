@@ -222,7 +222,7 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
     public void onReceivedData(byte[] bytes) {
 
         if (bytes.length != 0) {
-//            Log.d(TAG, "CUSTOMARDUINO");
+            Log.d(TAG, "RECEIVED this: " + Arrays.toString(bytes) + " of length: " + bytes.length);
 //            List<Integer> idx = indexOf(bytes, delimiter);
 //            if (!isFlagSet) {
 //                flag = (char) bytes[0];
@@ -233,12 +233,13 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
             bytesReceived.addAll(toByteList(bytes));
             for (byte bt : bytes) {
                 if (bt == '>') {
-//                        Log.d(TAG, "TERMINATE CHARACTER IS HERE");
+                        Log.d(TAG, "TERMINATE CHARACTER IS HERE, TOTAL ARRAY RECEIVED: " + bytesReceived.toString());
+                        Log.d(TAG, "IT HAS LENGTH: " + bytesReceived.size());
 //                        bytesReceived.remove(0); // Remove the flag
                     bytesReceived.remove(bytesReceived.size() - 1); // Remove the end marker
                     if (listener != null) {
-//                            Log.d(TAG, "send to listener");
                         listener.onArduinoMessage(toByteArray(bytesReceived));
+                        Log.d(TAG, "sent to listener");
                         bytesReceived.clear();
 //                        isFlagSet = false;
                     }
