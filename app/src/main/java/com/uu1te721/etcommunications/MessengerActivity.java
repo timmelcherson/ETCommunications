@@ -214,7 +214,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 //        return array;
 //    }
 
-    private void logBytes(byte[] arr) {
+    public static void logBytes(byte[] arr) {
 
         String str = "";
         String innerStr = "";
@@ -273,52 +273,48 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     public void onArduinoMessage(byte[] bytes) {
 //        String data;
 
+        Log.d(TAG, "ON ARDUINO MESSAGE");
         if (bytes.length != 0) {
-            Log.d(TAG, "CUSTOMARDUINO");
-            Log.d(TAG, "--------------------------");
-            Log.d(TAG, Arrays.toString(bytes));
-            Log.d(TAG, "--------------------------");
-        }
-//
-//
-        char flag = 0; // No flag set
+            logBytes(bytes);
 
-        if (!isFlagSet) {
-            flag = (char) bytes[0];
-            isFlagSet = true;
-            Log.d(TAG, "Flag is: " + flag);
-        }
+//
+//
+            char flag = 0; // No flag set
+
+            if (!isFlagSet) {
+                flag = (char) bytes[0];
+                isFlagSet = true;
+                Log.d(TAG, "Flag is: " + flag);
+                bytes = Arrays.copyOfRange(bytes, 1, bytes.length);
+            }
 //
 //        for (byte bt : bytes) {
 //            if (bt == 62) {
 //                Log.d(TAG, "End marker detected, transmission complete");
 //            }
 //        }
-        byte[] subArray = Arrays.copyOfRange(bytes, 1, bytes.length);
 
 
-        switch (flag) {
+            switch (flag) {
 
-            case 'i':
-                runOnUiThread(() -> {
-                    Toast.makeText(this, "Received Image", Toast.LENGTH_SHORT).show();
-                });
+                case 'i':
+                    receiveImage(bytes);
+                    Log.d(TAG, "Received Image");
+                    break;
 
-                Log.d(TAG, "Received Image");
-                break;
+                case 't':
+                    receiveMessage(bytes);
+                    break;
 
-            case 't':
-                receiveMessage(subArray);
-                break;
+                default:
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, "No flag detected", Toast.LENGTH_SHORT).show();
+                    });
+                    break;
 
-            default:
-                runOnUiThread(() -> {
-                    Toast.makeText(this, "No flag detected", Toast.LENGTH_SHORT).show();
-                });
-                break;
-
+            }
+            isFlagSet = false;
         }
-        isFlagSet = false;
     }
 
     @Override
@@ -396,13 +392,11 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         Bitmap multimediaMessage = BitmapFactory.decodeFile(currentPhotoPath, opts);
 //        multimediaMessage = getResizedBitmap(multimediaMessage, 100);
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        multimediaMessage.compress(Bitmap.CompressFormat.JPEG, 50, stream);
+        multimediaMessage.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+//        multimediaMessage = getResizedBitmap(multimediaMessage, 70);
         byte[] byteArray = stream.toByteArray();
         // Displaying multimedia object (Only support image for now).
-        MessageCard card = new MessageCard(multimediaMessage, currentPhotoPath, "sent");
-        mMessageCardList.add(card);
-        mMessengerAdapter.notifyDataSetChanged();
-        hideSoftKeyboard();
+
 
         // Send to CustomArduino
 //        ByteBuffer byteBuffer = ByteBuffer.allocate(multimediaMessage.getByteCount());
@@ -411,9 +405,18 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         byte[] arrayForTransmission = addTransmissionFlagToByteArray(TRANSMISSION_FLAG_IMAGE, byteArray);
 //        receiveImage(byteArray);
         Log.d(TAG, "sendPhoto: LOGGING TRANSMISSION BYTES, size of picture: " + multimediaMessage.getByteCount());
-//        logBytes(arrayForTransmission);
-        Toast.makeText(this, "Sending photo with FLAG: " + (char) arrayForTransmission[0], Toast.LENGTH_SHORT).show();
-        mArduino.send(arrayForTransmission);
+        logBytes(arrayForTransmission);
+//        Toast.makeText(this, "Sending photo with FLAG: " + (char) arrayForTransmission[0], Toast.LENGTH_SHORT).show();
+        if ((char) arrayForTransmission[0] == 'i') {
+            mArduino.send(arrayForTransmission);
+            MessageCard card = new MessageCard(multimediaMessage, currentPhotoPath, "sent");
+            mMessageCardList.add(card);
+            mMessengerAdapter.notifyDataSetChanged();
+            lm.smoothScrollToPosition(mMessageFeed, null, mMessageCardList.size() - 1);
+            hideSoftKeyboard();
+        } else {
+            Log.d(TAG, "sendMessage: WRONG FLAG: " + (char) arrayForTransmission[0]);
+        }
     }
 
     private byte[] addTransmissionFlagToByteArray(byte flag, byte[] arr) {
@@ -435,6 +438,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     private void receiveImage(byte[] bitmapArray) {
         // Displaying multimedia object (Only support image for now).
+        Log.d(TAG, "RECEIVE IMAGE");
         logBytes(bitmapArray);
         Bitmap bmp = BitmapFactory.decodeByteArray(bitmapArray, 0, bitmapArray.length);
 //        BitmapFactory.Options options = new BitmapFactory.Options();

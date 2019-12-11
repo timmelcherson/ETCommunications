@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
+import static com.uu1te721.etcommunications.MessengerActivity.logBytes;
 import static com.uu1te721.etcommunications.utils.Constants.ACTION_USB_PERMISSION;
 import static com.uu1te721.etcommunications.utils.Constants.TAG;
 
@@ -222,7 +223,8 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
     public void onReceivedData(byte[] bytes) {
 
         if (bytes.length != 0) {
-            Log.d(TAG, "RECEIVED this: " + Arrays.toString(bytes) + " of length: " + bytes.length);
+            Log.d(TAG, "RECEIVED this:");
+            logBytes(bytes);
 //            List<Integer> idx = indexOf(bytes, delimiter);
 //            if (!isFlagSet) {
 //                flag = (char) bytes[0];
@@ -230,9 +232,11 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
 //            }
 //            if(idx.isEmpty()){
 //                Log.d(TAG, "empty?");
+
             bytesReceived.addAll(toByteList(bytes));
+            int i = 0;
             for (byte bt : bytes) {
-                if (bt == '>') {
+                if (bt == '>' && i == bytes.length-1) {
                         Log.d(TAG, "TERMINATE CHARACTER IS HERE, TOTAL ARRAY RECEIVED: " + bytesReceived.toString());
                         Log.d(TAG, "IT HAS LENGTH: " + bytesReceived.size());
 //                        bytesReceived.remove(0); // Remove the flag
@@ -246,6 +250,7 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
 //                        Log.d(TAG, "saveArr: " + saveArr.toString());
 //                        Log.d(TAG, "bytesReceived: " + bytesReceived.toString());
                 }
+                i++;
             }
 //                Log.d(TAG, "array: " + bytesReceived.toString());
 //            }
