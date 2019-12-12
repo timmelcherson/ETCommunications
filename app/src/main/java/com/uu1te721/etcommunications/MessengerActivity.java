@@ -390,10 +390,9 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         BitmapFactory.Options opts = new BitmapFactory.Options();
         opts.inSampleSize = IMAGE_DISPLAY_SCALE_FACTOR;
         Bitmap multimediaMessage = BitmapFactory.decodeFile(currentPhotoPath, opts);
-//        multimediaMessage = getResizedBitmap(multimediaMessage, 100);
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        multimediaMessage.compress(Bitmap.CompressFormat.JPEG, 100, stream);
-//        multimediaMessage = getResizedBitmap(multimediaMessage, 70);
+        multimediaMessage.compress(Bitmap.CompressFormat.JPEG, 30, stream);
+        multimediaMessage = Bitmap.createScaledBitmap(multimediaMessage, 150, 100, true);
         byte[] byteArray = stream.toByteArray();
         // Displaying multimedia object (Only support image for now).
 
@@ -406,6 +405,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 //        receiveImage(byteArray);
         Log.d(TAG, "sendPhoto: LOGGING TRANSMISSION BYTES, size of picture: " + multimediaMessage.getByteCount());
         logBytes(arrayForTransmission);
+//        receiveImage(byteArray);
 //        Toast.makeText(this, "Sending photo with FLAG: " + (char) arrayForTransmission[0], Toast.LENGTH_SHORT).show();
         if ((char) arrayForTransmission[0] == 'i') {
             mArduino.send(arrayForTransmission);
@@ -438,16 +438,17 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     private void receiveImage(byte[] bitmapArray) {
         // Displaying multimedia object (Only support image for now).
-        Log.d(TAG, "RECEIVE IMAGE");
+        Log.d(TAG, "RECEIVE IMAGE of size: " + bitmapArray.length);
         logBytes(bitmapArray);
         Bitmap bmp = BitmapFactory.decodeByteArray(bitmapArray, 0, bitmapArray.length);
+        final Bitmap scaledBitmap = Bitmap.createScaledBitmap(bmp, 300, 200, true);
 //        BitmapFactory.Options options = new BitmapFactory.Options();
 //        options.inMutable = true;
 //        Bitmap bmp = BitmapFactory.decodeByteArray(bitmapArray, 0, bitmapArray.length, options);
 //        Canvas canvas = new Canvas(bmp);
         runOnUiThread(() -> {
             Toast.makeText(MessengerActivity.this, "received image", Toast.LENGTH_SHORT).show();
-            MessageCard card = new MessageCard(bmp, "received");
+            MessageCard card = new MessageCard(scaledBitmap, currentPhotoPath, "received");
             mMessageCardList.add(card);
             mMessengerAdapter.notifyDataSetChanged();
         });
