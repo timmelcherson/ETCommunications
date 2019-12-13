@@ -31,6 +31,7 @@ import com.felhr.usbserial.UsbSerialInterface;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
@@ -269,6 +270,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     }
 
     boolean isFlagSet = false;
+
     @Override
     public void onArduinoMessage(byte[] bytes) {
 //        String data;
@@ -392,11 +394,10 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         Bitmap multimediaMessage = BitmapFactory.decodeFile(currentPhotoPath, opts);
 //        multimediaMessage = getResizedBitmap(multimediaMessage, 100);
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        multimediaMessage = getResizedBitmap(multimediaMessage, 300);
         multimediaMessage.compress(Bitmap.CompressFormat.JPEG, 100, stream);
-//        multimediaMessage = getResizedBitmap(multimediaMessage, 70);
         byte[] byteArray = stream.toByteArray();
         // Displaying multimedia object (Only support image for now).
-
 
         // Send to CustomArduino
 //        ByteBuffer byteBuffer = ByteBuffer.allocate(multimediaMessage.getByteCount());
@@ -421,9 +422,11 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     private byte[] addTransmissionFlagToByteArray(byte flag, byte[] arr) {
 
-        ByteBuffer combined = ByteBuffer.allocate(1 + arr.length + 1);
+        ByteBuffer combined = ByteBuffer.allocate(1 + arr.length + 3);
         combined.put(flag);
         combined.put(arr);
+        combined.put((byte) '>');
+        combined.put((byte) '>');
         combined.put((byte) '>');
         return combined.array();
     }
@@ -445,13 +448,27 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 //        options.inMutable = true;
 //        Bitmap bmp = BitmapFactory.decodeByteArray(bitmapArray, 0, bitmapArray.length, options);
 //        Canvas canvas = new Canvas(bmp);
-        runOnUiThread(() -> {
-            Toast.makeText(MessengerActivity.this, "received image", Toast.LENGTH_SHORT).show();
-            MessageCard card = new MessageCard(bmp, "received");
-            mMessageCardList.add(card);
-            mMessengerAdapter.notifyDataSetChanged();
-        });
+        File photoFile = null;
+        try {
+            photoFile = createImageFile();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+//                Toast.makeText(this, "Error while creating the File", Toast.LENGTH_SHORT).show();
+        }
 
+        // Continue only if the File was successfully created
+        if (photoFile != null) {
+            Uri photoURI = FileProvider.getUriForFile(this,
+                    "com.example.android.fileprovider",
+                    photoFile);
+//                Toast.makeText(this, "File created.", Toast.LENGTH_SHORT).show();
+            runOnUiThread(() -> {
+                Toast.makeText(MessengerActivity.this, "received image", Toast.LENGTH_SHORT).show();
+                MessageCard card = new MessageCard(bmp, photoURI.toString(), "received");
+                mMessageCardList.add(card);
+                mMessengerAdapter.notifyDataSetChanged();
+            });
+        }
     }
 
     private void receiveMessage(byte[] byteArray) {

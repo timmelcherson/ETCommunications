@@ -107,8 +107,30 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
     }
 
     public void send(byte[] bytes) {
+
         if (serialPort != null) {
-            serialPort.write(bytes);
+            int index = 0;
+            int chunk = 1;
+            Log.d(TAG, "SENDING array of size: " + bytes.length);
+            while (bytes.length - index > 125) {
+                Log.d(TAG, "Sending chunk: " + chunk);
+                byte[] partialArray = Arrays.copyOfRange(bytes, index, index + 125);
+                Log.d(TAG, Arrays.toString(partialArray));
+                serialPort.write(partialArray);
+                index = index + 125;
+                chunk++;
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    Log.d(TAG, "Error sleeping: " + String.valueOf(e));
+                }
+            }
+            Log.d(TAG, "Sending final range");
+            Log.d(TAG, "--------------------");
+            byte[] finalArray = Arrays.copyOfRange(bytes, index, bytes.length);
+            Log.d(TAG, Arrays.toString(finalArray));
+            serialPort.write(finalArray);
         }
     }
 
@@ -215,66 +237,50 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
         return array;
     }
 
-    List<Byte> saveArr = new ArrayList<>();
-    boolean isFlagSet = false;
-    char flag = 0;
+    int receiveCounter = 0;
+
+    boolean isFlagDetected = false;
+    int flagDetectCounter = 0;
 
     @Override
     public void onReceivedData(byte[] bytes) {
 
         if (bytes.length != 0) {
-            Log.d(TAG, "RECEIVED this:");
-            logBytes(bytes);
-//            List<Integer> idx = indexOf(bytes, delimiter);
-//            if (!isFlagSet) {
-//                flag = (char) bytes[0];
-//                isFlagSet = true;
-//            }
-//            if(idx.isEmpty()){
-//                Log.d(TAG, "empty?");
+            Log.d(TAG, "RECEIVED: " + Arrays.toString(bytes));
 
             bytesReceived.addAll(toByteList(bytes));
-            int i = 0;
-            for (byte bt : bytes) {
-                if (bt == '>' && i == bytes.length-1) {
+
+
+            int length = bytesReceived.size();
+            Log.d(TAG, "bytesReceived current size: " + length);
+            Log.d(TAG, "bytesReceived current values: " + Arrays.toString(toByteArray(bytesReceived)));
+            for (int i = 0; i < bytes.length; i++) {
+                receiveCounter++;
+                if (bytes[i] == '>') {
+                    if (!isFlagDetected) {
+                        isFlagDetected = true;
+                        flagDetectCounter++;
+                    } else {
+                        flagDetectCounter++;
+                    }
+                    if (flagDetectCounter >= 3) {
                         Log.d(TAG, "TERMINATE CHARACTER IS HERE, TOTAL ARRAY RECEIVED: " + bytesReceived.toString());
                         Log.d(TAG, "IT HAS LENGTH: " + bytesReceived.size());
-//                        bytesReceived.remove(0); // Remove the flag
-                    bytesReceived.remove(bytesReceived.size() - 1); // Remove the end marker
-                    if (listener != null) {
-                        listener.onArduinoMessage(toByteArray(bytesReceived));
-                        Log.d(TAG, "sent to listener");
-                        bytesReceived.clear();
-//                        isFlagSet = false;
+                        if (listener != null) {
+                            Log.d(TAG, "Received in total (excluding flags): " + String.valueOf(receiveCounter - 1));
+                            Log.d(TAG, Arrays.toString(toByteArray(bytesReceived)));
+                            listener.onArduinoMessage(toByteArray(bytesReceived.subList(0, bytesReceived.size() - 3)));
+                            Log.d(TAG, "sent to listener");
+                            bytesReceived.clear();
+                            receiveCounter = 0;
+                        }
                     }
-//                        Log.d(TAG, "saveArr: " + saveArr.toString());
-//                        Log.d(TAG, "bytesReceived: " + bytesReceived.toString());
-                }
-                i++;
-            }
-//                Log.d(TAG, "array: " + bytesReceived.toString());
-//            }
-//        else{
-//                Log.d(TAG, "1");
-                /*int offset = 0;
-                for(int index : idx){
-//                    Log.d(TAG, "INDEX: " + idx);
-                    byte[] tmp = Arrays.copyOfRange(bytes, offset, index);
-                    bytesReceived.addAll(toByteList(tmp));
-                    if(listener != null) {
-//                        Log.d(TAG, "2");
-                        listener.onArduinoMessage(toByteArray(bytesReceived));
-                    }
-                    bytesReceived.clear();
-                    offset += index + 1;
-                }
 
-                if(offset < bytes.length - 1){
-//                    Log.d(TAG, "3");
-                    byte[] tmp = Arrays.copyOfRange(bytes, offset, bytes.length);
-                    bytesReceived.addAll(toByteList(tmp));
-                }*/
-//            }
+                } else {
+                    isFlagDetected = false;
+                    flagDetectCounter = 0;
+                }
+            }
         }
     }
 
