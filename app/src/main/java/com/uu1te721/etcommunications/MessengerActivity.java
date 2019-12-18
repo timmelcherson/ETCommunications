@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
@@ -27,26 +26,18 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.felhr.usbserial.UsbSerialDevice;
-import com.felhr.usbserial.UsbSerialInterface;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.Random;
 
 
-import me.aflak.arduino.Arduino;
-
-import static com.uu1te721.etcommunications.utils.Constants.REQUEST_IMAGE_CAPTUTRE;
 import static com.uu1te721.etcommunications.utils.Constants.IMAGE_DISPLAY_SCALE_FACTOR;
 
 import static com.uu1te721.etcommunications.utils.Constants.REQUEST_TAKE_PHOTO;
@@ -57,7 +48,7 @@ import static com.uu1te721.etcommunications.utils.Constants.TRANSMISSION_FLAG_TE
 public class MessengerActivity extends AppCompatActivity implements View.OnClickListener, CustomArduinoListener { //UsbSerialInterface.UsbReadCallback
 
 
-    private Button mSendBtn, mCameraBtn;
+    private Button mRTLSBtn, mSendBtn, mCameraBtn;
     private EditText mWriteMessageEt;
     private RecyclerView mMessageFeed;
     private MessengerRecyclerViewAdapter mMessengerAdapter;
@@ -89,6 +80,8 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
         mSendBtn = findViewById(R.id.send_message_btn);
         mCameraBtn = findViewById(R.id.camera_btn);
+        mRTLSBtn = findViewById(R.id.rtls_btn);
+
         mWriteMessageEt = findViewById(R.id.write_message_et);
         mMessageFeed = findViewById(R.id.message_feed_layout);
 
@@ -100,6 +93,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
         mSendBtn.setOnClickListener(this);
         mCameraBtn.setOnClickListener(this);
+        mRTLSBtn.setOnClickListener(this);
 
         buildRecyclerView();
     }
@@ -123,7 +117,15 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
             case R.id.camera_btn:
                 takePicture();
                 break;
+
+            case R.id.rtls_btn:
+                displayPosition();
+                break;
         }
+    }
+
+    private void displayPosition() {
+        startActivity(new Intent(MessengerActivity.this, PositionPopUp.class));
     }
 
     @Override
@@ -539,19 +541,4 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     // END: take picture
     // *********************************************************************************************
 
-    public Bitmap getResizedBitmap(Bitmap image, int maxSize) {
-
-        int width = image.getWidth();
-        int height = image.getHeight();
-
-        float bitmapRatio = (float) width / (float) height;
-        if (bitmapRatio > 1) {
-            width = maxSize;
-            height = (int) (width / bitmapRatio);
-        } else {
-            height = maxSize;
-            width = (int) (height * bitmapRatio);
-        }
-        return Bitmap.createScaledBitmap(image, width, height, true);
-    }
 }

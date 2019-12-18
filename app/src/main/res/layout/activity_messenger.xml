@@ -77,5 +77,18 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <Button
+        android:id="@+id/rtls_btn"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_margin="8dp"
+        android:layout_marginTop="16dp"
+        android:ellipsize="start"
+        android:foreground="@drawable/ic_gps_fixed_black_24dp"
+        app:layout_constraintEnd_toEndOf="@+id/toolbar"
+        app:layout_constraintHorizontal_bias="0.884"
+        app:layout_constraintStart_toStartOf="@+id/toolbar"
+        app:layout_constraintTop_toTopOf="@+id/toolbar" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
