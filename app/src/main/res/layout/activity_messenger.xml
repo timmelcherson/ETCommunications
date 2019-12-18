@@ -83,10 +83,25 @@
         android:layout_height="30dp"
         android:layout_margin="8dp"
         android:layout_marginTop="16dp"
+        android:backgroundTint="#00FFFFFF"
         android:ellipsize="start"
         android:foreground="@drawable/ic_gps_fixed_black_24dp"
         app:layout_constraintEnd_toEndOf="@+id/toolbar"
         app:layout_constraintHorizontal_bias="0.884"
+        app:layout_constraintStart_toStartOf="@+id/toolbar"
+        app:layout_constraintTop_toTopOf="@+id/toolbar" />
+
+    <Button
+        android:id="@+id/call_btn"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_margin="8dp"
+        android:layout_marginTop="8dp"
+        android:background="#00009688"
+        android:ellipsize="start"
+        android:foreground="@drawable/ic_phone_black_24dp"
+        app:layout_constraintEnd_toEndOf="@+id/toolbar"
+        app:layout_constraintHorizontal_bias="0.713"
         app:layout_constraintStart_toStartOf="@+id/toolbar"
         app:layout_constraintTop_toTopOf="@+id/toolbar" />
 

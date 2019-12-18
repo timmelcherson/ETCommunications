@@ -48,7 +48,7 @@ import static com.uu1te721.etcommunications.utils.Constants.TRANSMISSION_FLAG_TE
 public class MessengerActivity extends AppCompatActivity implements View.OnClickListener, CustomArduinoListener { //UsbSerialInterface.UsbReadCallback
 
 
-    private Button mRTLSBtn, mSendBtn, mCameraBtn;
+    private Button mCallBtn, mRTLSBtn, mSendBtn, mCameraBtn;
     private EditText mWriteMessageEt;
     private RecyclerView mMessageFeed;
     private MessengerRecyclerViewAdapter mMessengerAdapter;
@@ -81,6 +81,8 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         mSendBtn = findViewById(R.id.send_message_btn);
         mCameraBtn = findViewById(R.id.camera_btn);
         mRTLSBtn = findViewById(R.id.rtls_btn);
+        mCallBtn = findViewById(R.id.call_btn);
+
 
         mWriteMessageEt = findViewById(R.id.write_message_et);
         mMessageFeed = findViewById(R.id.message_feed_layout);
@@ -94,7 +96,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         mSendBtn.setOnClickListener(this);
         mCameraBtn.setOnClickListener(this);
         mRTLSBtn.setOnClickListener(this);
-
+        mCallBtn.setOnClickListener(this);
         buildRecyclerView();
     }
 
@@ -121,7 +123,16 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
             case R.id.rtls_btn:
                 displayPosition();
                 break;
+
+            case R.id.call_btn:
+
+                displayCallActivity();
         }
+    }
+
+    private void displayCallActivity() {
+        startActivity(new Intent(MessengerActivity.this, CallActivity.class));
+
     }
 
     private void displayPosition() {

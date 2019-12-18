@@ -30,6 +30,7 @@
 
         </activity>
         <activity android:name=".MessengerActivity" />
+        <activity android:name=".CallActivity" />
         <service
             android:name="com.uu1te721.etcommunications.UsbService"
             android:enabled="true">
