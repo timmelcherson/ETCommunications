@@ -8,6 +8,8 @@ import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.util.Log;
 
 import com.felhr.usbserial.UsbSerialDevice;
@@ -23,7 +25,7 @@ import static com.uu1te721.etcommunications.utils.Constants.ACTION_USB_PERMISSIO
 import static com.uu1te721.etcommunications.utils.Constants.TAG;
 
 
-public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
+    public class CustomArduino implements UsbSerialInterface.UsbReadCallback, Parcelable {
     private Context context;
     private CustomArduinoListener listener;
 
@@ -46,9 +48,30 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
         init(context, baudRate);
     }
 
-    public CustomArduino(Context context) {
+    public CustomArduino(Context context)  {
         init(context, DEFAULT_BAUD_RATE);
     }
+
+    protected CustomArduino(Parcel in) {
+        lastArduinoAttached = in.readParcelable(UsbDevice.class.getClassLoader());
+        baudRate = in.readInt();
+        isOpened = in.readByte() != 0;
+        delimiter = in.readByte();
+        isFlagSet = in.readByte() != 0;
+        flag = (char) in.readInt();
+    }
+
+    public static final Creator<CustomArduino> CREATOR = new Creator<CustomArduino>() {
+        @Override
+        public CustomArduino createFromParcel(Parcel in) {
+            return new CustomArduino(in);
+        }
+
+        @Override
+        public CustomArduino[] newArray(int size) {
+            return new CustomArduino[size];
+        }
+    };
 
     private void init(Context context, int baudRate) {
         this.context = context;
@@ -122,6 +145,21 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
 
     public void addVendorId(int id) {
         vendorIds.add(id);
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel parcel, int i) {
+        parcel.writeParcelable(lastArduinoAttached, i);
+        parcel.writeInt(baudRate);
+        parcel.writeByte((byte) (isOpened ? 1 : 0));
+        parcel.writeByte(delimiter);
+        parcel.writeByte((byte) (isFlagSet ? 1 : 0));
+        parcel.writeInt((int) flag);
     }
 
     private class UsbReceiver extends BroadcastReceiver {
@@ -252,29 +290,7 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
                 }
                 i++;
             }
-//                Log.d(TAG, "array: " + bytesReceived.toString());
-//            }
-//        else{
-//                Log.d(TAG, "1");
-                /*int offset = 0;
-                for(int index : idx){
-//                    Log.d(TAG, "INDEX: " + idx);
-                    byte[] tmp = Arrays.copyOfRange(bytes, offset, index);
-                    bytesReceived.addAll(toByteList(tmp));
-                    if(listener != null) {
-//                        Log.d(TAG, "2");
-                        listener.onArduinoMessage(toByteArray(bytesReceived));
-                    }
-                    bytesReceived.clear();
-                    offset += index + 1;
-                }
 
-                if(offset < bytes.length - 1){
-//                    Log.d(TAG, "3");
-                    byte[] tmp = Arrays.copyOfRange(bytes, offset, bytes.length);
-                    bytesReceived.addAll(toByteList(tmp));
-                }*/
-//            }
         }
     }
 

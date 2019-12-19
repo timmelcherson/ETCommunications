@@ -132,11 +132,13 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     private void displayCallActivity() {
         startActivity(new Intent(MessengerActivity.this, CallActivity.class));
-
     }
 
     private void displayPosition() {
-        startActivity(new Intent(MessengerActivity.this, PositionPopUp.class));
+        Intent intent = new Intent(MessengerActivity.this, PositionActivity.class);
+        intent.putExtra("marduino", mArduino);
+        startActivity(intent);
+
     }
 
     @Override
@@ -156,76 +158,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     }
 
-//    List<Byte> bytesReceived = new ArrayList<>();
-//    byte delimiter = '\n';
-//
-//    @Override
-//    public void onReceivedData(byte[] bytes) {
-//        Log.d(TAG, "MESSENGER ONRECEIVEDDATA");
-//        int matchnr = 1;
-//        Log.d(TAG, "--------------------------");
-//        for (byte bt : bytes) {
-//            Log.d(TAG, String.valueOf((char) bt));
-//            if (bt == (char) '\n') {
-//                Log.d(TAG, "MATCH NEWLLINE");
-//            }
-//            if (bt == (char) '\r') {
-//                Log.d(TAG, "MATCH CARRIAGE RETURN");
-//            }
-//        }
-//        Log.d(TAG, "--------------------------");
-//        Log.d(TAG, Arrays.toString(bytes));
-//        Log.d(TAG, "--------------------------");
-//
-//        if (bytes.length != 0) {
-//            List<Integer> idx = indexOf(bytes, delimiter);
-//            if (idx.isEmpty()) {
-//                bytesReceived.addAll(toByteList(bytes));
-//            } else {
-//                int offset = 0;
-//                for (int index : idx) {
-//                    byte[] tmp = Arrays.copyOfRange(bytes, offset, index);
-//                    bytesReceived.addAll(toByteList(tmp));
-//                    if (mArduinoListener != null) {
-//                        mArduinoListener.onArduinoMessage(toByteArray(bytesReceived));
-//                    }
-//                    bytesReceived.clear();
-//                    offset += index + 1;
-//                }
-//
-//                if (offset < bytes.length - 1) {
-//                    byte[] tmp = Arrays.copyOfRange(bytes, offset, bytes.length);
-//                    bytesReceived.addAll(toByteList(tmp));
-//                }
-//            }
-//        }
-//    }
-//
-//    private List<Integer> indexOf(byte[] bytes, byte b) {
-//        List<Integer> idx = new ArrayList<>();
-//        for (int i = 0; i < bytes.length; i++) {
-//            if (bytes[i] == b) {
-//                idx.add(i);
-//            }
-//        }
-//        return idx;
-//    }
-//
-//    private List<Byte> toByteList(byte[] bytes) {
-//        List<Byte> list = new ArrayList<>();
-//        for (byte b : bytes) {
-//            list.add(b);
-//        }
-//        return list;
-//    }
-//
-//    private byte[] toByteArray(List<Byte> bytes) {
-//        byte[] array = new byte[bytes.size()];
-//        for (int i = 0; i < bytes.size(); i++) {
-//            array[i] = bytes.get(i);
-//        }
-//        return array;
-//    }
+
 
     public static void logBytes(byte[] arr) {
 

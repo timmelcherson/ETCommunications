@@ -36,7 +36,7 @@
             android:enabled="true">
         </service>
         <activity android:name=".ImageDialog" android:theme="@style/image_prev_theme" />
-        <activity android:name=".PositionPopUp"/>
+        <activity android:name=".PositionActivity"/>
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="com.example.android.fileprovider"
