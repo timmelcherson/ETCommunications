@@ -1,4 +1,4 @@
-package com.uu1te721.etcommunications;
+package com.uu1te721.etcommunications.adapters;
 
 import android.content.Context;
 import android.content.Intent;
@@ -11,10 +11,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.uu1te721.etcommunications.R;
+import com.uu1te721.etcommunications.uicomponents.ImageDialog;
+import com.uu1te721.etcommunications.uicomponents.MessageCard;
 
 import java.util.List;
 
@@ -28,7 +31,7 @@ public class MessengerRecyclerViewAdapter extends RecyclerView.Adapter<Messenger
     private String msgDirection;
 
     // Constructor
-    MessengerRecyclerViewAdapter(Context context, List<MessageCard> messageList) {
+    public MessengerRecyclerViewAdapter(Context context, List<MessageCard> messageList) {
         this.context = context;
         this.mMessageList = messageList;
     }
@@ -81,6 +84,7 @@ public class MessengerRecyclerViewAdapter extends RecyclerView.Adapter<Messenger
         SpannableStringBuilder ssb = new SpannableStringBuilder();
 //        Log.d(TAG, "bitmap of item at position " + position + " null in recycler?: " + item.hasPicture(position));
         if (item.hasPicture(position)) {
+            Log.d(TAG, "Item has picture at position: " + position);
             ssb.append(" ");
             Bitmap pic = item.getPicture();
             ssb.setSpan(new ImageSpan(context, pic), ssb.length() - 1, ssb.length(), 0);
@@ -89,6 +93,7 @@ public class MessengerRecyclerViewAdapter extends RecyclerView.Adapter<Messenger
             holder.mMessageTV.setOnClickListener(view -> {
                 Intent intent = new Intent(context, ImageDialog.class);
                 intent.putExtra("imagePath", item.getPhotoPath());
+                Log.d(TAG, "Item get photo path: " + item.getPhotoPath());
                 context.startActivity(intent);
             });
 

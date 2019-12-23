@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:focusable="true"
     android:focusableInTouchMode="true"
-    tools:context=".MessengerActivity">
+    tools:context=".activities.MessengerActivity">
 
     <include
         android:id="@+id/toolbar"

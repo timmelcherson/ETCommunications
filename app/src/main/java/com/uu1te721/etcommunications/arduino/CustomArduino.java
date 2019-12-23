@@ -1,4 +1,4 @@
-package com.uu1te721.etcommunications;
+package com.uu1te721.etcommunications.arduino;
 
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -18,7 +18,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import static com.uu1te721.etcommunications.MessengerActivity.logBytes;
 import static com.uu1te721.etcommunications.utils.Constants.ACTION_USB_PERMISSION;
 import static com.uu1te721.etcommunications.utils.Constants.TAG;
 

@@ -1,4 +1,4 @@
-package com.uu1te721.etcommunications;
+package com.uu1te721.etcommunications.uicomponents;
 
 public class ReceivedMessageCard {
     private String mText;
