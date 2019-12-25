@@ -33,14 +33,16 @@
                 <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
             </intent-filter>
         </activity>
-        <activity android:name=".MessengerActivity" />
-        <activity android:name=".CallActivity" />
+        <activity android:name=".activities.MessengerActivity" />
+
         <service
-            android:name="com.uu1te721.etcommunications.UsbService"
-            android:enabled="true">
-        </service>
-        <activity android:name=".ImageDialog" android:theme="@style/image_prev_theme" />
-        <activity android:name=".PositionActivity"/>
+            android:name=".utils.UsbService"
+            android:enabled="true"></service>
+
+        <activity
+            android:name=".uicomponents.ImageDialog"
+            android:theme="@style/image_prev_theme" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="com.example.android.fileprovider"

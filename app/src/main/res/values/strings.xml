@@ -6,5 +6,4 @@
     <string name="SEND_MSG">Send</string>
     <string name="FIND_USB">FIND USB</string>
     <string name="place_holder_for_previewed_images">Place holder for previewed images.</string>
-    <string name = "RTLS">Your friend is: </string>
 </resources>

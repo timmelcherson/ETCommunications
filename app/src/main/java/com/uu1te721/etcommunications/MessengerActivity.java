@@ -1,4 +1,4 @@
-package com.uu1te721.etcommunications.activities;
+package com.uu1te721.etcommunications;
 
 import android.content.Context;
 import android.content.Intent;
@@ -26,16 +26,11 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.felhr.usbserial.UsbSerialDevice;
-import com.uu1te721.etcommunications.arduino.CustomArduino;
-import com.uu1te721.etcommunications.arduino.CustomArduinoListener;
-import com.uu1te721.etcommunications.uicomponents.MessageCard;
-import com.uu1te721.etcommunications.adapters.MessengerRecyclerViewAdapter;
-import com.uu1te721.etcommunications.R;
-import com.uu1te721.etcommunications.utils.UsbService;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,27 +44,25 @@ import static com.uu1te721.etcommunications.utils.Constants.REQUEST_TAKE_PHOTO;
 import static com.uu1te721.etcommunications.utils.Constants.TAG;
 import static com.uu1te721.etcommunications.utils.Constants.TRANSMISSION_FLAG_IMAGE;
 import static com.uu1te721.etcommunications.utils.Constants.TRANSMISSION_FLAG_TEXT;
-import static com.uu1te721.etcommunications.utils.ImageUtils.getResizedBitmap;
-import static com.uu1te721.etcommunications.utils.TransmissionUtils.addTransmissionFlagToByteArray;
 
-public class MessengerActivity extends AppCompatActivity implements View.OnClickListener, CustomArduinoListener {
+public class MessengerActivity extends AppCompatActivity implements View.OnClickListener, CustomArduinoListener { //UsbSerialInterface.UsbReadCallback
 
-    // Views
-    private Button mSendBtn, mCameraBtn;
+
+    private Button mCallBtn, mRTLSBtn, mSendBtn, mCameraBtn;
     private EditText mWriteMessageEt;
     private RecyclerView mMessageFeed;
     private MessengerRecyclerViewAdapter mMessengerAdapter;
     private LinearLayoutManager lm;
-
-    // Variables
+    private UsbDeviceConnection connection;
+    private UsbDevice device;
+    private UsbManager usbManager;
+    private UsbSerialDevice serialPort;
     private List<String> mMessageList = new ArrayList<>();
     private List<MessageCard> mMessageCardList = new ArrayList<>();
-    private boolean isFlagSet = false;
-    private String currentPhotoPath;
-
-    // Other
+    private UsbService usbService;
     private CustomArduino mArduino;
-
+    private CustomArduinoListener mArduinoListener;
+    private boolean isMessageReceived = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,6 +80,10 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
         mSendBtn = findViewById(R.id.send_message_btn);
         mCameraBtn = findViewById(R.id.camera_btn);
+        mRTLSBtn = findViewById(R.id.rtls_btn);
+        mCallBtn = findViewById(R.id.call_btn);
+
+
         mWriteMessageEt = findViewById(R.id.write_message_et);
         mMessageFeed = findViewById(R.id.message_feed_layout);
 
@@ -98,7 +95,8 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
         mSendBtn.setOnClickListener(this);
         mCameraBtn.setOnClickListener(this);
-
+        mRTLSBtn.setOnClickListener(this);
+        mCallBtn.setOnClickListener(this);
         buildRecyclerView();
     }
 
@@ -121,12 +119,32 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
             case R.id.camera_btn:
                 takePicture();
                 break;
+
+            case R.id.rtls_btn:
+                displayPosition();
+                break;
+
+            case R.id.call_btn:
+
+                displayCallActivity();
         }
+    }
+
+    private void displayCallActivity() {
+        startActivity(new Intent(MessengerActivity.this, CallActivity.class));
+    }
+
+    private void displayPosition() {
+        Intent intent = new Intent(MessengerActivity.this, PositionActivity.class);
+        intent.putExtra("marduino", mArduino);
+        startActivity(intent);
+
     }
 
     @Override
     protected void onStart() {
         super.onStart();
+//        setupArduino();
         mArduino.setArduinoListener(this);
     }
 
@@ -136,25 +154,98 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     }
 
     @Override
-    public void onArduinoDetached() {}
+    public void onArduinoDetached() {
 
+    }
+
+
+
+    public static void logBytes(byte[] arr) {
+
+        String str = "";
+        String innerStr = "";
+
+        if (arr.length > 50) {
+            for (int i = 1; i <= 10; i++) {
+                str = str.concat(Integer.toBinaryString(arr[i - 1] & 255 | 256).substring(1) + " ");
+
+                if (i >= arr.length - 4) {
+                    innerStr = innerStr.concat(Integer.toBinaryString(arr[i - 1] & 255 | 256).substring(1) + " ");
+                    if (i >= arr.length) {
+                        Log.d(TAG, innerStr);
+                        innerStr = "";
+                    }
+                } else if (i % 4 == 0) {
+                    Log.d(TAG, str);
+                    str = "";
+                }
+            }
+            Log.d(TAG, ". . .");
+            for (int i = arr.length - 10; i <= arr.length; i++) {
+                str = str.concat(Integer.toBinaryString(arr[i - 1] & 255 | 256).substring(1) + " ");
+
+                if (i >= arr.length - 4) {
+                    innerStr = innerStr.concat(Integer.toBinaryString(arr[i - 1] & 255 | 256).substring(1) + " ");
+                    if (i >= arr.length) {
+                        Log.d(TAG, innerStr);
+                        innerStr = "";
+                    }
+                } else if (i % 4 == 0) {
+                    Log.d(TAG, str);
+                    str = "";
+                }
+            }
+        } else {
+            for (int i = 1; i <= arr.length; i++) {
+                str = str.concat(Integer.toBinaryString(arr[i - 1] & 255 | 256).substring(1) + " ");
+
+                if (i >= arr.length - 4) {
+                    innerStr = innerStr.concat(Integer.toBinaryString(arr[i - 1] & 255 | 256).substring(1) + " ");
+                    if (i >= arr.length) {
+                        Log.d(TAG, innerStr);
+                        innerStr = "";
+                    }
+                } else if (i % 4 == 0) {
+                    Log.d(TAG, str);
+                    str = "";
+                }
+            }
+        }
+
+    }
+
+    boolean isFlagSet = false;
     @Override
     public void onArduinoMessage(byte[] bytes) {
+//        String data;
 
+        Log.d(TAG, "ON ARDUINO MESSAGE");
         if (bytes.length != 0) {
+            logBytes(bytes);
 
+//
+//
             char flag = 0; // No flag set
 
             if (!isFlagSet) {
                 flag = (char) bytes[0];
                 isFlagSet = true;
+                Log.d(TAG, "Flag is: " + flag);
                 bytes = Arrays.copyOfRange(bytes, 1, bytes.length);
             }
+//
+//        for (byte bt : bytes) {
+//            if (bt == 62) {
+//                Log.d(TAG, "End marker detected, transmission complete");
+//            }
+//        }
+
 
             switch (flag) {
 
                 case 'i':
                     receiveImage(bytes);
+                    Log.d(TAG, "Received Image");
                     break;
 
                 case 't':
@@ -174,10 +265,14 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     @Override
     public void onArduinoOpened() {
+        // you can start the communication
+//        String str = "Hello CustomArduino";
+//        mArduino.send(str.getBytes());
     }
 
     @Override
     public void onUsbPermissionDenied() {
+        // Permission denied, display popup then
         mArduino.reopen();
     }
 
@@ -188,6 +283,28 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         mArduino.close();
     }
 
+    public void receptionRouter(char flag) {
+
+        switch (flag) {
+
+            case 'i':
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Received Image", Toast.LENGTH_SHORT).show();
+                });
+
+                Log.d(TAG, "Received Image");
+                break;
+
+            case 't':
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Received Text", Toast.LENGTH_SHORT).show();
+                });
+
+                Log.d(TAG, "Received Text");
+                break;
+        }
+    }
+
     public void sendMessage() {
 
         if (mWriteMessageEt.getText().toString().equals(""))
@@ -195,8 +312,11 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
         // This method called when send button pressed.
         String msg = mWriteMessageEt.getText().toString();
-        byte[] arrayForTransmission = addTransmissionFlagToByteArray(TRANSMISSION_FLAG_TEXT, msg.getBytes());
+//        Log.d(TAG, "sendMessage - msg in bytes (before flag): " + Arrays.toString(msg.getBytes()));
 
+        byte[] arrayForTransmission = addTransmissionFlagToByteArray(TRANSMISSION_FLAG_TEXT, msg.getBytes());
+//        Log.d(TAG, "sendMessage: LOGGING TRANSMISSION BYTES:");
+//        logBytes(arrayForTransmission);
         if ((char) arrayForTransmission[0] == 't') {
             mArduino.send(arrayForTransmission);
             Log.d(TAG, "sent this msg: " + Arrays.toString(arrayForTransmission));
@@ -216,14 +336,23 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         BitmapFactory.Options opts = new BitmapFactory.Options();
         opts.inSampleSize = IMAGE_DISPLAY_SCALE_FACTOR;
         Bitmap multimediaMessage = BitmapFactory.decodeFile(currentPhotoPath, opts);
-
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        multimediaMessage = getResizedBitmap(multimediaMessage, 200);
-        multimediaMessage.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+        multimediaMessage.compress(Bitmap.CompressFormat.JPEG, 30, stream);
+        multimediaMessage = Bitmap.createScaledBitmap(multimediaMessage, 150, 100, true);
         byte[] byteArray = stream.toByteArray();
-        byte[] arrayForTransmission = addTransmissionFlagToByteArray(TRANSMISSION_FLAG_IMAGE, byteArray);
-        Log.d(TAG, "sendPhoto: LOGGING TRANSMISSION BYTES, size of picture: " + multimediaMessage.getByteCount());
+        // Displaying multimedia object (Only support image for now).
 
+
+        // Send to CustomArduino
+//        ByteBuffer byteBuffer = ByteBuffer.allocate(multimediaMessage.getByteCount());
+//        multimediaMessage.copyPixelsToBuffer(byteBuffer);
+//        byte[] byteArray = byteBuffer.array();
+        byte[] arrayForTransmission = addTransmissionFlagToByteArray(TRANSMISSION_FLAG_IMAGE, byteArray);
+//        receiveImage(byteArray);
+        Log.d(TAG, "sendPhoto: LOGGING TRANSMISSION BYTES, size of picture: " + multimediaMessage.getByteCount());
+        logBytes(arrayForTransmission);
+//        receiveImage(byteArray);
+//        Toast.makeText(this, "Sending photo with FLAG: " + (char) arrayForTransmission[0], Toast.LENGTH_SHORT).show();
         if ((char) arrayForTransmission[0] == 'i') {
             mArduino.send(arrayForTransmission);
             MessageCard card = new MessageCard(multimediaMessage, currentPhotoPath, "sent");
@@ -231,13 +360,19 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
             mMessengerAdapter.notifyDataSetChanged();
             lm.smoothScrollToPosition(mMessageFeed, null, mMessageCardList.size() - 1);
             hideSoftKeyboard();
-//            receiveImage(byteArray);
         } else {
             Log.d(TAG, "sendMessage: WRONG FLAG: " + (char) arrayForTransmission[0]);
         }
     }
 
+    private byte[] addTransmissionFlagToByteArray(byte flag, byte[] arr) {
 
+        ByteBuffer combined = ByteBuffer.allocate(1 + arr.length + 1);
+        combined.put(flag);
+        combined.put(arr);
+        combined.put((byte) '>');
+        return combined.array();
+    }
 
     private void hideSoftKeyboard() {
         View view = this.getCurrentFocus();
@@ -249,36 +384,21 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     private void receiveImage(byte[] bitmapArray) {
         // Displaying multimedia object (Only support image for now).
-        Log.d(TAG, "RECEIVE IMAGE");
+        Log.d(TAG, "RECEIVE IMAGE of size: " + bitmapArray.length);
+        logBytes(bitmapArray);
         Bitmap bmp = BitmapFactory.decodeByteArray(bitmapArray, 0, bitmapArray.length);
+        final Bitmap scaledBitmap = Bitmap.createScaledBitmap(bmp, 300, 200, true);
+//        BitmapFactory.Options options = new BitmapFactory.Options();
+//        options.inMutable = true;
+//        Bitmap bmp = BitmapFactory.decodeByteArray(bitmapArray, 0, bitmapArray.length, options);
+//        Canvas canvas = new Canvas(bmp);
+        runOnUiThread(() -> {
+            Toast.makeText(MessengerActivity.this, "received image", Toast.LENGTH_SHORT).show();
+            MessageCard card = new MessageCard(scaledBitmap, currentPhotoPath, "received");
+            mMessageCardList.add(card);
+            mMessengerAdapter.notifyDataSetChanged();
+        });
 
-        File photoFile = null;
-        try {
-            photoFile = createImageFile();
-            Log.d(TAG, "Created image file");
-        } catch (IOException ex) {
-            ex.printStackTrace();
-            Log.d(TAG, "Failed to create image file, msg: " + ex);
-        }
-
-        // Continue only if the File was successfully created
-        if (photoFile != null) {
-            Intent saveImageIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                Uri photoURI = FileProvider.getUriForFile(this,
-                        "com.example.android.fileprovider",
-                        photoFile);
-                Log.d(TAG, "Image taken, uri is: " + photoURI);
-                saveImageIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-            runOnUiThread(() -> {
-                Toast.makeText(MessengerActivity.this, "received image", Toast.LENGTH_SHORT).show();
-                MessageCard card = new MessageCard(bmp, currentPhotoPath, "received");
-                mMessageCardList.add(card);
-                mMessengerAdapter.notifyDataSetChanged();
-            });
-        }
-        else {
-            Log.d(TAG, "Photofile was null, image was not created");
-        }
     }
 
     private void receiveMessage(byte[] byteArray) {
@@ -286,9 +406,11 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         String msg = new String(byteArray);
 
         runOnUiThread(() -> {
+            Log.d(TAG, "run msg: " + msg);
             MessageCard msgCard = new MessageCard(msg, "received");
             mMessageCardList.add(msgCard);
             mMessengerAdapter.notifyDataSetChanged();
+            isMessageReceived = false;
         });
         lm.smoothScrollToPosition(mMessageFeed, null, mMessageCardList.size());
     }
@@ -308,13 +430,13 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     // *********************************************************************************************
     // Function: Take picture
 
+    String currentPhotoPath;
 
     private File createImageFile() throws IOException {
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-
         File image = File.createTempFile(
                 imageFileName,  /* prefix */
                 ".jpg",         /* suffix */
@@ -323,7 +445,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
         // Save a file: path for use with ACTION_VIEW intents
         currentPhotoPath = image.getAbsolutePath();
-        Log.d(TAG, "Current photo path: " + currentPhotoPath);
+//        Toast.makeText(this, "image stored.", Toast.LENGTH_SHORT).show();
         return image;
     }
 
@@ -338,13 +460,16 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
                 photoFile = createImageFile();
             } catch (IOException ex) {
                 ex.printStackTrace();
+//                Toast.makeText(this, "Error while creating the File", Toast.LENGTH_SHORT).show();
             }
             // Continue only if the File was successfully created
             if (photoFile != null) {
                 Uri photoURI = FileProvider.getUriForFile(this,
                         "com.example.android.fileprovider",
                         photoFile);
-                Log.d(TAG, "Image taken, uri is: " + photoURI);
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
+//                Toast.makeText(this, "File created.", Toast.LENGTH_SHORT).show();
             }
         }
 

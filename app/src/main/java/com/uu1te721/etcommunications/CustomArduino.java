@@ -1,4 +1,4 @@
-package com.uu1te721.etcommunications.arduino;
+package com.uu1te721.etcommunications;
 
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -8,6 +8,8 @@ import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.util.Log;
 
 import com.felhr.usbserial.UsbSerialDevice;
@@ -18,11 +20,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
+import static com.uu1te721.etcommunications.MessengerActivity.logBytes;
 import static com.uu1te721.etcommunications.utils.Constants.ACTION_USB_PERMISSION;
 import static com.uu1te721.etcommunications.utils.Constants.TAG;
 
 
-public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
+    public class CustomArduino implements UsbSerialInterface.UsbReadCallback, Parcelable {
     private Context context;
     private CustomArduinoListener listener;
 
@@ -45,9 +48,30 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
         init(context, baudRate);
     }
 
-    public CustomArduino(Context context) {
+    public CustomArduino(Context context)  {
         init(context, DEFAULT_BAUD_RATE);
     }
+
+    protected CustomArduino(Parcel in) {
+        lastArduinoAttached = in.readParcelable(UsbDevice.class.getClassLoader());
+        baudRate = in.readInt();
+        isOpened = in.readByte() != 0;
+        delimiter = in.readByte();
+        isFlagSet = in.readByte() != 0;
+        flag = (char) in.readInt();
+    }
+
+    public static final Creator<CustomArduino> CREATOR = new Creator<CustomArduino>() {
+        @Override
+        public CustomArduino createFromParcel(Parcel in) {
+            return new CustomArduino(in);
+        }
+
+        @Override
+        public CustomArduino[] newArray(int size) {
+            return new CustomArduino[size];
+        }
+    };
 
     private void init(Context context, int baudRate) {
         this.context = context;
@@ -106,30 +130,8 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
     }
 
     public void send(byte[] bytes) {
-
         if (serialPort != null) {
-            int index = 0;
-            int chunk = 1;
-            Log.d(TAG, "SENDING array of size: " + bytes.length);
-            while (bytes.length - index > 125) {
-                Log.d(TAG, "Sending chunk: " + chunk);
-                byte[] partialArray = Arrays.copyOfRange(bytes, index, index + 125);
-                Log.d(TAG, Arrays.toString(partialArray));
-                serialPort.write(partialArray);
-                index = index + 125;
-                chunk++;
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                    Log.d(TAG, "Error sleeping: " + String.valueOf(e));
-                }
-            }
-            Log.d(TAG, "Sending final range");
-            Log.d(TAG, "--------------------");
-            byte[] finalArray = Arrays.copyOfRange(bytes, index, bytes.length);
-            Log.d(TAG, Arrays.toString(finalArray));
-            serialPort.write(finalArray);
+            serialPort.write(bytes);
         }
     }
 
@@ -143,6 +145,21 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
 
     public void addVendorId(int id) {
         vendorIds.add(id);
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel parcel, int i) {
+        parcel.writeParcelable(lastArduinoAttached, i);
+        parcel.writeInt(baudRate);
+        parcel.writeByte((byte) (isOpened ? 1 : 0));
+        parcel.writeByte(delimiter);
+        parcel.writeByte((byte) (isFlagSet ? 1 : 0));
+        parcel.writeInt((int) flag);
     }
 
     private class UsbReceiver extends BroadcastReceiver {
@@ -236,50 +253,44 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
         return array;
     }
 
-    int receiveCounter = 0;
-
-    boolean isFlagDetected = false;
-    int flagDetectCounter = 0;
+    List<Byte> saveArr = new ArrayList<>();
+    boolean isFlagSet = false;
+    char flag = 0;
 
     @Override
     public void onReceivedData(byte[] bytes) {
 
         if (bytes.length != 0) {
-            Log.d(TAG, "RECEIVED: " + Arrays.toString(bytes));
+            Log.d(TAG, "RECEIVED this:");
+            logBytes(bytes);
+//            List<Integer> idx = indexOf(bytes, delimiter);
+//            if (!isFlagSet) {
+//                flag = (char) bytes[0];
+//                isFlagSet = true;
+//            }
+//            if(idx.isEmpty()){
+//                Log.d(TAG, "empty?");
 
             bytesReceived.addAll(toByteList(bytes));
-
-
-            int length = bytesReceived.size();
-            Log.d(TAG, "bytesReceived current size: " + length);
-            Log.d(TAG, "bytesReceived current values: " + Arrays.toString(toByteArray(bytesReceived)));
-            for (int i = 0; i < bytes.length; i++) {
-                receiveCounter++;
-                if (bytes[i] == '>') {
-                    if (!isFlagDetected) {
-                        isFlagDetected = true;
-                        flagDetectCounter++;
-                    } else {
-                        flagDetectCounter++;
-                    }
-                    if (flagDetectCounter >= 3) {
+            int i = 0;
+            for (byte bt : bytes) {
+                if (bt == '>' && i == bytes.length-1) {
                         Log.d(TAG, "TERMINATE CHARACTER IS HERE, TOTAL ARRAY RECEIVED: " + bytesReceived.toString());
                         Log.d(TAG, "IT HAS LENGTH: " + bytesReceived.size());
-                        if (listener != null) {
-                            Log.d(TAG, "Received in total (excluding flags): " + String.valueOf(receiveCounter - 1));
-                            Log.d(TAG, Arrays.toString(toByteArray(bytesReceived)));
-                            listener.onArduinoMessage(toByteArray(bytesReceived.subList(0, bytesReceived.size() - 3)));
-                            Log.d(TAG, "sent to listener");
-                            bytesReceived.clear();
-                            receiveCounter = 0;
-                        }
+//                        bytesReceived.remove(0); // Remove the flag
+                    bytesReceived.remove(bytesReceived.size() - 1); // Remove the end marker
+                    if (listener != null) {
+                        listener.onArduinoMessage(toByteArray(bytesReceived));
+                        Log.d(TAG, "sent to listener");
+                        bytesReceived.clear();
+//                        isFlagSet = false;
                     }
-
-                } else {
-                    isFlagDetected = false;
-                    flagDetectCounter = 0;
+//                        Log.d(TAG, "saveArr: " + saveArr.toString());
+//                        Log.d(TAG, "bytesReceived: " + bytesReceived.toString());
                 }
+                i++;
             }
+
         }
     }
 
