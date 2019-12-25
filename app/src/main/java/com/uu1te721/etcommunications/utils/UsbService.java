@@ -1,4 +1,4 @@
-package com.uu1te721.etcommunications;
+package com.uu1te721.etcommunications.utils;
 
 import android.app.PendingIntent;
 import android.app.Service;
@@ -18,7 +18,6 @@ import com.felhr.usbserial.CDCSerialDevice;
 import com.felhr.usbserial.UsbSerialDevice;
 import com.felhr.usbserial.UsbSerialInterface;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;

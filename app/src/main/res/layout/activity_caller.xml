@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".activities.CallerActivity">
+
+    <TextView
+        android:id="@+id/caller_name_tv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="32dp"
+        android:text="SELECT PHONE TO CALL"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Phone 1"
+        android:textStyle="bold"
+        android:textSize="24sp"
+        android:background="@drawable/phone_list_item_bg"
+        android:layout_marginTop="32dp"
+        android:padding="8dp"
+        app:layout_constraintStart_toStartOf="@+id/caller_name_tv"
+        app:layout_constraintTop_toBottomOf="@+id/caller_name_tv" />
+
+    <ImageView
+        android:id="@+id/initiate_call_btn"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:src="@drawable/phone_icon_bg"
+        android:layout_marginStart="16dp"
+        android:elevation="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

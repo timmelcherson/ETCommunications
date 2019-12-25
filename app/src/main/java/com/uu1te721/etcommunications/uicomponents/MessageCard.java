@@ -1,4 +1,4 @@
-package com.uu1te721.etcommunications;
+package com.uu1te721.etcommunications.uicomponents;
 
 import android.graphics.Bitmap;
 import android.util.Log;
@@ -6,51 +6,51 @@ import android.util.Log;
 import static com.uu1te721.etcommunications.utils.Constants.TAG;
 // TODO: This only handles pictures. Thus the variable "mMultimediaFile" is not general for audio, etc.
 
-class MessageCard {
+public class MessageCard {
     private String photopath;
     private Bitmap mMultimediaFile;
     private String mText;
     private String messageDirection;
 
     // Constructor for text messages
-    MessageCard(String text, String direction) {
+    public MessageCard(String text, String direction) {
         this.mText = text;
         this.messageDirection = direction;
     }
 
-    MessageCard(Bitmap mMultimediaFile, String direction) {
+    public MessageCard(Bitmap mMultimediaFile, String direction) {
         this.mMultimediaFile = mMultimediaFile;
         this.messageDirection = direction;
         this.mText = "";
     }
 
     // Constructor for multimedia messages
-    MessageCard(Bitmap mMultimediaFile, String photopath, String direction) {
+    public MessageCard(Bitmap mMultimediaFile, String photopath, String direction) {
         this.mMultimediaFile = mMultimediaFile;
         this.messageDirection = direction;
         this.photopath = photopath;
         this.mText = "";
     }
 
-    Boolean hasPicture(int index) {
+    public Boolean hasPicture(int index) {
         return this.mMultimediaFile != null;
     }
 
 
-    String getPhotoPath(){
+    public String getPhotoPath(){
         return this.photopath;
     }
 
 
-    Bitmap getPicture() {
+    public Bitmap getPicture() {
         return this.mMultimediaFile;
     }
 
-    String getText() {
+    public String getText() {
         return this.mText;
     }
 
-    String getMessageDirection() {
+    public String getMessageDirection() {
         return this.messageDirection;
     }
 }
