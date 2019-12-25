@@ -336,6 +336,9 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         BitmapFactory.Options opts = new BitmapFactory.Options();
         opts.inSampleSize = IMAGE_DISPLAY_SCALE_FACTOR;
         Bitmap multimediaMessage = BitmapFactory.decodeFile(currentPhotoPath, opts);
+
+        Toast.makeText(this, Integer.toString(multimediaMessage.getByteCount()), Toast.LENGTH_SHORT).show();
+
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         multimediaMessage.compress(Bitmap.CompressFormat.JPEG, 30, stream);
         multimediaMessage = Bitmap.createScaledBitmap(multimediaMessage, 150, 100, true);
