@@ -9,6 +9,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.linroid.filtermenu.library.FilterMenu;
 import com.linroid.filtermenu.library.FilterMenuLayout;
+import com.uu1te721.etcommunications.activities.CallerActivity;
+import com.uu1te721.etcommunications.activities.MessengerActivity;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -41,12 +43,13 @@ public class MainActivity extends AppCompatActivity {
                     public void onMenuItemClick(View view, int position) {
                         switch (position) {
                             case 0:
-                                Toast.makeText(MainActivity.this, "CLICK 1", Toast.LENGTH_SHORT).show();
+                                Intent callIntent = new Intent(MainActivity.this, CallerActivity.class);
+                                startActivity(callIntent);
                                 break;
 
                             case 1:
-                                Intent intent = new Intent(MainActivity.this, MessengerActivity.class);
-                                startActivity(intent);
+                                Intent messageIntent = new Intent(MainActivity.this, MessengerActivity.class);
+                                startActivity(messageIntent);
                                 break;
                         }
                     }

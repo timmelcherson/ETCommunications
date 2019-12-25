@@ -3,9 +3,9 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="#4B554B"
+    android:background="#555555"
+    app:titleTextColor="#FFF"
     android:elevation="0dp"
     android:minHeight="?attr/actionBarSize"
     android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-    app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
-    app:titleTextColor="#FFF" />
+    app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
