@@ -1,8 +1,7 @@
-package com.uu1te721.etcommunications;
+package com.uu1te721.etcommunications.activities;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -14,10 +13,15 @@ import android.util.Log;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
+
+import com.uu1te721.etcommunications.R;
+import com.uu1te721.etcommunications.arduino.CustomArduino;
+import com.uu1te721.etcommunications.arduino.CustomArduinoListener;
+
 import static com.uu1te721.etcommunications.utils.Constants.TAG;
 
 
-public class PositionActivity extends Activity implements SensorEventListener,CustomArduinoListener {
+public class PositionActivity extends Activity implements SensorEventListener, CustomArduinoListener {
 
 
      TextView accX;
@@ -34,13 +38,7 @@ public class PositionActivity extends Activity implements SensorEventListener,Cu
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.rtlspopup);
-
-
-        Intent intent = getIntent();
-        marduino = intent.getParcelableExtra("marduino");
-
-
+        setContentView(R.layout.main_layout);
 
         DisplayMetrics dm = new DisplayMetrics();
 
@@ -71,7 +69,7 @@ public class PositionActivity extends Activity implements SensorEventListener,Cu
 
     public void displayPosition(){
         String str = "rtls";
-        marduino.send(str.getBytes());
+        // marduino.send(str.getBytes());
     }
 
     @Override

@@ -1,9 +1,10 @@
 <resources>
-    <string name="app_name">ETCommunications</string>
+    <string name="app_name">Uwi</string>
 
     <!-- MESSENGER ACTIVITY -->
     <string name="WRITE_MSG_HINT">Write a message...</string>
     <string name="SEND_MSG">Send</string>
     <string name="FIND_USB">FIND USB</string>
     <string name="place_holder_for_previewed_images">Place holder for previewed images.</string>
+    <string name="RTLS">RTLS</string>
 </resources>
