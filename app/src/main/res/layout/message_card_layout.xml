@@ -16,5 +16,5 @@
         android:textColor="#FFF"
         android:background="@drawable/received_message_card_background"
         android:text="HELLO HELLO HELLO" />
-
 </RelativeLayout>
+

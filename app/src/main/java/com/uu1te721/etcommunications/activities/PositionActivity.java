@@ -1,6 +1,5 @@
 package com.uu1te721.etcommunications.activities;
 
-import android.app.Activity;
 import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -13,15 +12,23 @@ import android.util.Log;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.uu1te721.etcommunications.R;
+import com.uu1te721.etcommunications.adapters.UwiBuddy;
+import com.uu1te721.etcommunications.adapters.UwiNeighborhood;
 import com.uu1te721.etcommunications.arduino.CustomArduino;
 import com.uu1te721.etcommunications.arduino.CustomArduinoListener;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.uu1te721.etcommunications.utils.Constants.TAG;
 
 
-public class PositionActivity extends Activity implements SensorEventListener, CustomArduinoListener {
+public class PositionActivity extends AppCompatActivity implements SensorEventListener, CustomArduinoListener {
 
 
      TextView accX;
@@ -34,6 +41,10 @@ public class PositionActivity extends Activity implements SensorEventListener, C
     Sensor sensor;
 
     CustomArduino marduino;
+    private List<UwiBuddy> buddyList = new ArrayList<>();
+    private UwiNeighborhood neighborhood;
+    private RecyclerView buddiesfeed;
+    private LinearLayoutManager lm;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -63,14 +74,26 @@ public class PositionActivity extends Activity implements SensorEventListener, C
         sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
 
 
-    displayPosition();
+        buddiesfeed = findViewById(R.id.buddies_feed_layout);
+
+
+        lm = new LinearLayoutManager(this);
+        buddiesfeed.setLayoutManager(lm);
+        neighborhood = new UwiNeighborhood(this, buddyList);
+        buddiesfeed.setAdapter(neighborhood);
+
+
 
     }
 
-    public void displayPosition(){
-        String str = "rtls";
-        // marduino.send(str.getBytes());
+    public void displayNewBuddy(int ID){
+        /* This adds and displays the buddy in the radar */
+        UwiBuddy bdy = new UwiBuddy(ID);
+        buddyList.add(bdy);
+        neighborhood.notifyDataSetChanged();
     }
+
+
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {

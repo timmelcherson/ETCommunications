@@ -42,6 +42,7 @@
         <activity
             android:name=".uicomponents.ImageDialog"
             android:theme="@style/image_prev_theme" />
+        <activity android:name="UwiNeighborhood" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
