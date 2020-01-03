@@ -16,7 +16,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.uu1te721.etcommunications.R;
-import com.uu1te721.etcommunications.uicomponents.ImageDialog;
+import com.uu1te721.etcommunications.activities.ImageDialog;
 import com.uu1te721.etcommunications.uicomponents.MessageCard;
 
 import java.util.List;

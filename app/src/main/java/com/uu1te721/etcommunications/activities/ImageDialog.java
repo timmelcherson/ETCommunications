@@ -1,4 +1,4 @@
-package com.uu1te721.etcommunications.uicomponents;
+package com.uu1te721.etcommunications.activities;
 
 import android.app.Activity;
 import android.graphics.Bitmap;

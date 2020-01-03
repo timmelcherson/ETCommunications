@@ -345,9 +345,11 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
                         "com.example.android.fileprovider",
                         photoFile);
                 Log.d(TAG, "Image taken, uri is: " + photoURI);
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
             }
-        }
 
+        }
     }
 
     @Override
