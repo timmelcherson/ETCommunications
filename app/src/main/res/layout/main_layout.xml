@@ -90,10 +90,12 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/uwilog_wtext"
-            app:layout_constraintBottom_toTopOf="@+id/txt_alias"
+            app:layout_constraintBottom_toTopOf="@+id/textView4"
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.501"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.293" />
 
         <TextView
             android:id="@+id/txt_alias"
@@ -104,32 +106,22 @@
             android:textSize="16sp"
             app:layout_constraintBottom_toTopOf="@+id/textView4"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.498"
-            app:layout_constraintStart_toStartOf="parent" />
+            app:layout_constraintHorizontal_bias="0.522"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="1.0" />
 
         <Button
             android:id="@+id/btn_editAlias"
             android:layout_width="17dp"
             android:layout_height="18dp"
             android:background="@drawable/icon_edit"
-            app:layout_constraintBottom_toTopOf="@+id/button2"
+            app:layout_constraintBottom_toTopOf="@+id/textView4"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.012"
+            app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toEndOf="@+id/txt_alias"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.675" />
-
-        <Button
-            android:id="@+id/button2"
-            android:layout_width="29dp"
-            android:layout_height="20dp"
-            android:layout_marginTop="172dp"
-            android:background="@drawable/icon_show_rtls"
-            android:text="Button"
-            app:layout_constraintEnd_toStartOf="@+id/button3"
-            app:layout_constraintHorizontal_bias="0.997"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="@+id/txt_alias"
+            app:layout_constraintVertical_bias="0.029" />
 
         <Button
             android:id="@+id/button3"
@@ -138,8 +130,24 @@
             android:layout_marginTop="172dp"
             android:layout_marginEnd="16dp"
             android:background="@drawable/icon_show_list"
+            app:layout_constraintBottom_toTopOf="@+id/textView4"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.0" />
+
+        <Button
+            android:id="@+id/button2"
+            android:layout_width="29dp"
+            android:layout_height="20dp"
+            android:layout_marginTop="172dp"
+            android:background="@drawable/icon_show_rtls"
+            android:text="Button"
+            app:layout_constraintBottom_toTopOf="@+id/textView4"
+            app:layout_constraintEnd_toStartOf="@+id/button3"
+            app:layout_constraintHorizontal_bias="0.997"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.0" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/buddies_feed_layout"

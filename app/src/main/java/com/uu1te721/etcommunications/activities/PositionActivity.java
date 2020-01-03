@@ -8,8 +8,8 @@ import android.hardware.SensorManager;
 import android.hardware.usb.UsbDevice;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -24,8 +24,6 @@ import com.uu1te721.etcommunications.arduino.CustomArduinoListener;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static com.uu1te721.etcommunications.utils.Constants.TAG;
 
 
 public class PositionActivity extends AppCompatActivity implements SensorEventListener, CustomArduinoListener {
@@ -45,6 +43,9 @@ public class PositionActivity extends AppCompatActivity implements SensorEventLi
     private UwiNeighborhood neighborhood;
     private RecyclerView buddiesfeed;
     private LinearLayoutManager lm;
+
+
+    private String GET_ID_COMMAND = "48"; //ASCII for '0';
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -83,6 +84,15 @@ public class PositionActivity extends AppCompatActivity implements SensorEventLi
         buddiesfeed.setAdapter(neighborhood);
 
 
+        /* Serial connection to Arduino */
+        marduino = new CustomArduino(this, 115200);
+        marduino.addVendorId(10755);
+        marduino.addVendorId(9025);
+        marduino.setDelimiter((byte) '\r');
+        marduino.setArduinoListener(this);
+
+
+
 
     }
 
@@ -110,25 +120,27 @@ public class PositionActivity extends AppCompatActivity implements SensorEventLi
 
     @Override
     public void onArduinoAttached(UsbDevice device) {
-
+    marduino.open(device);
     }
 
     @Override
-    public void onArduinoDetached() {
-
+    public void onArduinoDetached()
+    {
+        Toast.makeText(this, "Arduino Detached", Toast.LENGTH_SHORT).show();
     }
 
     @Override
     public void onArduinoMessage(byte[] bytes) {
          // display in Layaout
+        Toast.makeText(this, String.valueOf(bytes), Toast.LENGTH_SHORT).show();
 
-        Log.d(TAG, String.valueOf(bytes));
 
     }
 
     @Override
     public void onArduinoOpened() {
-
+        /* GET device ID */
+        marduino.send(GET_ID_COMMAND.getBytes());
     }
 
     @Override
