@@ -105,6 +105,8 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
         context.unregisterReceiver(usbReceiver);
     }
 
+
+
     public void send(byte[] bytes) {
 
         if (serialPort != null) {
@@ -245,41 +247,52 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
     public void onReceivedData(byte[] bytes) {
 
         if (bytes.length != 0) {
-            Log.d(TAG, "RECEIVED: " + Arrays.toString(bytes));
 
-            bytesReceived.addAll(toByteList(bytes));
-
-
-            int length = bytesReceived.size();
-            Log.d(TAG, "bytesReceived current size: " + length);
-            Log.d(TAG, "bytesReceived current values: " + Arrays.toString(toByteArray(bytesReceived)));
-            for (int i = 0; i < bytes.length; i++) {
-                receiveCounter++;
-                if (bytes[i] == '>') {
-                    if (!isFlagDetected) {
-                        isFlagDetected = true;
-                        flagDetectCounter++;
-                    } else {
-                        flagDetectCounter++;
-                    }
-                    if (flagDetectCounter >= 3) {
-                        Log.d(TAG, "TERMINATE CHARACTER IS HERE, TOTAL ARRAY RECEIVED: " + bytesReceived.toString());
-                        Log.d(TAG, "IT HAS LENGTH: " + bytesReceived.size());
-                        if (listener != null) {
-                            Log.d(TAG, "Received in total (excluding flags): " + String.valueOf(receiveCounter - 1));
-                            Log.d(TAG, Arrays.toString(toByteArray(bytesReceived)));
-                            listener.onArduinoMessage(toByteArray(bytesReceived.subList(0, bytesReceived.size() - 3)));
-                            Log.d(TAG, "sent to listener");
-                            bytesReceived.clear();
-                            receiveCounter = 0;
-                        }
-                    }
-
-                } else {
-                    isFlagDetected = false;
-                    flagDetectCounter = 0;
-                }
+               if (bytes[0] == 'I' && bytes[1] == 'D'){
+                Log.d(TAG, "ID received");
+                   listener.onArduinoMessage(bytes);
             }
+            else if(bytes[0] == 'D' && bytes[1] == 'S'){
+                   listener.onArduinoMessage(bytes);
+               }
+            else {
+                   Log.d(TAG, "RECEIVED: " + Arrays.toString(bytes));
+
+                   bytesReceived.addAll(toByteList(bytes));
+
+
+                   int length = bytesReceived.size();
+                   Log.d(TAG, "bytesReceived current size: " + length);
+                   Log.d(TAG, "bytesReceived current values: " + Arrays.toString(toByteArray(bytesReceived)));
+
+                   for (int i = 0; i < bytes.length; i++) {
+                       receiveCounter++;
+                       if (bytes[i] == '>') {
+                           if (!isFlagDetected) {
+                               isFlagDetected = true;
+                               flagDetectCounter++;
+                           } else {
+                               flagDetectCounter++;
+                           }
+                           if (flagDetectCounter >= 3) {
+                               Log.d(TAG, "TERMINATE CHARACTER IS HERE, TOTAL ARRAY RECEIVED: " + bytesReceived.toString());
+                               Log.d(TAG, "IT HAS LENGTH: " + bytesReceived.size());
+                               if (listener != null) {
+                                   Log.d(TAG, "Received in total (excluding flags): " + String.valueOf(receiveCounter - 1));
+                                   Log.d(TAG, Arrays.toString(toByteArray(bytesReceived)));
+                                   listener.onArduinoMessage(toByteArray(bytesReceived.subList(0, bytesReceived.size() - 3)));
+                                   Log.d(TAG, "sent to listener");
+                                   bytesReceived.clear();
+                                   receiveCounter = 0;
+                               }
+                           }
+
+                       } else {
+                           isFlagDetected = false;
+                           flagDetectCounter = 0;
+                       }
+                   }
+               }
         }
     }
 

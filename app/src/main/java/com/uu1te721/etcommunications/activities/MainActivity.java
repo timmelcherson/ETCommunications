@@ -16,6 +16,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -43,12 +44,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     TextView accY;
     TextView accZ;
     TextView txtPosition;
+    EditText txtAlias;
+    ImageView aliasIV;
 
     public static final String TAG = "TAG";
     SensorManager sensorManager;
     Sensor sensor;
 
-    CustomArduino marduino;
+    private CustomArduino marduino;
+
+
     private List<UwiBuddy> buddyList = new ArrayList<>();
     private List<View> viewBuddyList = new ArrayList<>();
     private UwiNeighborhood neighborhood;
@@ -56,9 +61,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private LinearLayoutManager lm;
 
     ImageView circle;
-    Button increaseAngleBtn, decreaseAngleBtn;
+    Button increaseAngleBtn, decreaseAngleBtn, editAliasBtn;
 
-    private String GET_ID_COMMAND = "48"; //ASCII for '0';
+    private String GET_ID_COMMAND = "00"; //ASCII for '0';
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -76,30 +81,32 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         // TODO: Dismiss when dm.widthPixels x or tapped outside the pop up windows.
 
 
+        aliasIV = findViewById(R.id.imageViewAvatar);
+
         accX = findViewById(R.id.textAccelerometerX);
         accY = findViewById(R.id.textAccelerometerY);
         accZ = findViewById(R.id.textAccelerometerZ);
-        txtPosition = findViewById(R.id.txt_distance);
+        //txtPosition = findViewById(R.id.txt_distance);
+        txtAlias = findViewById(R.id.txt_alias);
+
         increaseAngleBtn = findViewById(R.id.increase_angle_btn);
         decreaseAngleBtn = findViewById(R.id.decrease_angle_btn);
+        editAliasBtn = findViewById(R.id.btn_editAlias);
         increaseAngleBtn.setOnClickListener(this);
         decreaseAngleBtn.setOnClickListener(this);
-
+        editAliasBtn.setOnClickListener(this);
+        aliasIV.setOnClickListener(this);
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
 
         sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
 
-
         buddiesfeed = findViewById(R.id.buddies_feed_layout);
-
 
         lm = new LinearLayoutManager(this);
         buddiesfeed.setLayoutManager(lm);
         neighborhood = new UwiNeighborhood(this, buddyList);
         buddiesfeed.setAdapter(neighborhood);
-
-
 
         /* Serial connection to Arduino */
         marduino = new CustomArduino(this, 115200);
@@ -120,6 +127,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         switch (v.getId()) {
 
+            case R.id.imageViewAvatar:
+                marduino.send(GET_ID_COMMAND.getBytes());
+                marduino.send(GET_ID_COMMAND.getBytes());
+
+            case R.id.btn_editAlias:
+                Toast.makeText(this, "Edit alias btn clicked!", Toast.LENGTH_SHORT).show();
+                txtAlias.setCursorVisible(true);
+                txtAlias.setFocusableInTouchMode(true);
+                txtAlias.requestFocus();
+                txtAlias.setEnabled(true);
+                break;
+
             case R.id.init_buddy_msg_btn:
                 Intent msgIntent = new Intent(MainActivity.this, MessengerActivity.class);
                 startActivity(msgIntent);
@@ -131,6 +150,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             case R.id.increase_angle_btn:
                 increaseAngle();
+
+
+
                 break;
 
             case R.id.decrease_angle_btn:
@@ -226,17 +248,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         ImageView initMsg = v.findViewById(R.id.init_buddy_msg_btn);
         ImageView initCall = v.findViewById(R.id.init_buddy_call_btn);
         ImageView uwiAvatar = v.findViewById(R.id.uwi_avatar);
-        TextView buddyDistance = v.findViewById(R.id.txt_distance);
+        txtPosition = v.findViewById(R.id.txt_distance);
 
         initMsg.setOnClickListener(this);
         initCall.setOnClickListener(this);
 
-
         addBuddyToLayout(v);
         return v;
     }
-
-
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
@@ -248,13 +267,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         accX.setText("X: " + sensorEvent.values[0]);
         accY.setText("Y: " + sensorEvent.values[1]);
         accZ.setText("Z: " + sensorEvent.values[2]);
-
     }
 
     @Override
     public void onArduinoAttached(UsbDevice device) {
+
         marduino.open(device);
     }
+
 
     @Override
     public void onArduinoDetached() {
@@ -263,19 +283,57 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onArduinoMessage(byte[] bytes) {
+
+        Log.d(TAG, "MSG FROM ARDUINO ON MAIN ACTIVITY");
+
         // display in Layaout
-        Toast.makeText(this, String.valueOf(bytes), Toast.LENGTH_SHORT).show();
+
+        txtAlias.setText(bytes.toString());
+
+
+        if (bytes[0] == 'I' && bytes[1] == 'D') {
+            String str = "";
+            for (int i = 3; i < 23; i++) {
+                str += (char) bytes[i];
+            }
+
+            txtAlias.setText(str);
+
+        } else if (bytes[0] == 'D' && bytes[1] == 'S') {
+            String str = "";
+            for (int i = 3; i < bytes.length; i++) {
+                str += (char) bytes[i];
+            }
+
+            updateDistanceToBuddy(str);
+        }
+    }
+
+    private void updateDistanceToBuddy(String str) {
+
+            //viewBuddyList.add(initializeNewBuddy());
+        txtPosition.setText(str);
 
     }
 
     @Override
     public void onArduinoOpened() {
         /* GET device ID */
+        Toast.makeText(this, "Arduino OPENED", Toast.LENGTH_SHORT).show();
+
+        marduino.send(GET_ID_COMMAND.getBytes());
         marduino.send(GET_ID_COMMAND.getBytes());
     }
 
     @Override
     public void onUsbPermissionDenied() {
+        marduino.reopen();
+    }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        marduino.unsetArduinoListener();
+        marduino.close();
     }
 }
