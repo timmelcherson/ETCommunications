@@ -21,7 +21,7 @@
             app:layout_constraintTop_toTopOf="parent" />
 
         <ImageView
-            android:id="@+id/imageView"
+            android:id="@+id/imageViewAvatar"
             android:layout_width="80dp"
             android:layout_height="80dp"
             android:background="@drawable/matthew"
@@ -123,15 +123,6 @@
             android:text="Button"
             app:layout_constraintEnd_toStartOf="@+id/button3"
             app:layout_constraintTop_toBottomOf="@+id/header_guideline" />
-
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/buddies_feed_layout"
-            android:layout_width="40dp"
-            android:layout_height="278dp"
-            app:layout_constraintBottom_toBottomOf="@+id/main_circle"
-            app:layout_constraintEnd_toEndOf="@+id/main_circle"
-            app:layout_constraintStart_toStartOf="@+id/main_circle" />
 
     <Button
         android:id="@+id/increase_angle_btn"

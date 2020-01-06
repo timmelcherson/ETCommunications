@@ -34,17 +34,16 @@ import com.uu1te721.etcommunications.arduino.CustomArduino;
 import com.uu1te721.etcommunications.arduino.CustomArduinoListener;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, SensorEventListener, CustomArduinoListener {
 
 
-    TextView accX;
-    TextView accY;
-    TextView accZ;
-    TextView txtPosition;
-    EditText txtAlias;
+    TextView accX, accY, accZ, txtPosition, txtAlias;
     ImageView aliasIV;
 
     public static final String TAG = "TAG";
@@ -56,6 +55,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private List<UwiBuddy> buddyList = new ArrayList<>();
     private List<View> viewBuddyList = new ArrayList<>();
+    private Map<String, View> mapBuddyList = new HashMap<>();
     private UwiNeighborhood neighborhood;
     private RecyclerView buddiesfeed;
     private LinearLayoutManager lm;
@@ -101,13 +101,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
 
-        buddiesfeed = findViewById(R.id.buddies_feed_layout);
-
-        lm = new LinearLayoutManager(this);
-        buddiesfeed.setLayoutManager(lm);
-        neighborhood = new UwiNeighborhood(this, buddyList);
-        buddiesfeed.setAdapter(neighborhood);
-
         /* Serial connection to Arduino */
         marduino = new CustomArduino(this, 115200);
         marduino.addVendorId(10755);
@@ -119,7 +112,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setDisplayMeasurements();
         getCircleMeasurements();
 
-        viewBuddyList.add(initializeNewBuddy());
+//        viewBuddyList.add(initializeNewBuddy());
     }
 
     @Override
@@ -152,13 +145,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 increaseAngle();
 
 
-
                 break;
 
             case R.id.decrease_angle_btn:
                 decreaseAngle();
                 break;
         }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "Main onStart");
+        marduino.send("ST0".getBytes());
     }
 
     private int circleWidth;
@@ -220,6 +219,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         setBuddyAngle(viewBuddyList.get(0), buddyAngle);
     }
+
     public void decreaseAngle() {
         buddyAngle = buddyAngle - 10;
         if (buddyAngle <= 0) {
@@ -237,7 +237,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void addBuddyToLayout(View view) {
         ConstraintLayout layout = findViewById(R.id.main_layout);
         getViewMeasurements(view);
-        layout.addView(view);
+        runOnUiThread(() -> layout.addView(view));
     }
 
     public View initializeNewBuddy() {
@@ -284,16 +284,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onArduinoMessage(byte[] bytes) {
 
-        Log.d(TAG, "MSG FROM ARDUINO ON MAIN ACTIVITY");
+        Log.d(TAG, "MSG FROM ARDUINO ON MAIN ACTIVITY: " + Arrays.toString(bytes));
 
         // display in Layaout
 
-        txtAlias.setText(bytes.toString());
-
-
         if (bytes[0] == 'I' && bytes[1] == 'D') {
             String str = "";
-            for (int i = 3; i < 23; i++) {
+            for (int i = 3; i < bytes.length-3; i++) {
                 str += (char) bytes[i];
             }
 
@@ -301,19 +298,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         } else if (bytes[0] == 'D' && bytes[1] == 'S') {
             String str = "";
-            for (int i = 3; i < bytes.length; i++) {
+            for (int i = 3; i < bytes.length-3; i++) {
                 str += (char) bytes[i];
             }
-
+            if (viewBuddyList.isEmpty()) {
+                viewBuddyList.add(initializeNewBuddy());
+            }
             updateDistanceToBuddy(str);
         }
     }
 
     private void updateDistanceToBuddy(String str) {
-
-            //viewBuddyList.add(initializeNewBuddy());
-        txtPosition.setText(str);
-
+        runOnUiThread(() -> {
+            txtPosition.setText(str);
+        });
     }
 
     @Override

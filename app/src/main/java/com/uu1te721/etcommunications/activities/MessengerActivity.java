@@ -128,6 +128,8 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     protected void onStart() {
         super.onStart();
         mArduino.setArduinoListener(this);
+        Log.d(TAG, "Messenger onStart, sending ST1");
+        mArduino.send("ST1".getBytes());
     }
 
     @Override
