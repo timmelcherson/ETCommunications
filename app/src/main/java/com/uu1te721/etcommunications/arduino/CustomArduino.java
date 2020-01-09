@@ -13,6 +13,8 @@ import android.util.Log;
 import com.felhr.usbserial.UsbSerialDevice;
 import com.felhr.usbserial.UsbSerialInterface;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -40,6 +42,15 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
 
     private static final int DEFAULT_BAUD_RATE = 9600;
     private static final byte DEFAULT_DELIMITER = '\n';
+
+    public enum messengerState {
+        no_state,
+        ranging_state,
+        text_state,
+        image_state
+    }
+
+    messengerState MESSENGER_STATE = messengerState.no_state;
 
     public CustomArduino(Context context, int baudRate) {
         init(context, baudRate);
@@ -111,13 +122,15 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
         if (serialPort != null) {
             int index = 0;
             int chunk = 1;
+            int framesize = 127 - 9;
+
             Log.d(TAG, "SENDING array of size: " + bytes.length);
-            while (bytes.length - index > 125) {
-                Log.d(TAG, "Sending chunk: " + chunk);
-                byte[] partialArray = Arrays.copyOfRange(bytes, index, index + 125);
+            while (bytes.length - index > framesize) {
+                Log.d(TAG, "Sending chunk nr: " + chunk);
+                byte[] partialArray = Arrays.copyOfRange(bytes, index, index + framesize);
                 Log.d(TAG, Arrays.toString(partialArray));
                 serialPort.write(partialArray);
-                index = index + 125;
+                index = index + framesize;
                 chunk++;
                 try {
                     Thread.sleep(100);
@@ -241,49 +254,117 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
 
     boolean isFlagDetected = false;
     int flagDetectCounter = 0;
-
+    int lenfile = 0;
     @Override
     public void onReceivedData(byte[] bytes) {
 
-        if (bytes.length != 0) {
-            Log.d(TAG, "RECEIVED: " + Arrays.toString(bytes));
+        if (MESSENGER_STATE == messengerState.no_state) {
+            if (bytes.length > 4){
+                // E.g: {t, length, data, '>'} where data must > 0
+                //listener.onArduinoMessage()
 
-            bytesReceived.addAll(toByteList(bytes));
+                if (((char) bytes[0] == 'D') && ((char) bytes[1] == 'S')){
+                    listener.onArduinoMessage(bytes);
+                }
+                 else if ((char) bytes[0] == 't'){
+                    // its a text. Get the length.
+                    int lentext = (int) bytes[1];
 
+                    // Check if the whole message is in the current byte array.
+                    if (lentext > (bytes.length - 4)){
+                        // message splitted in different chuncks.
 
-            int length = bytesReceived.size();
-            Log.d(TAG, "bytesReceived current size: " + length);
-            Log.d(TAG, "bytesReceived current values: " + Arrays.toString(toByteArray(bytesReceived)));
+                        // Store current byte array
+                        bytesReceived.addAll(toByteList(bytes));
 
-            for (int i = 0; i < bytes.length; i++) {
-                receiveCounter++;
-                if (bytes[i] == '>') {
-                    if (!isFlagDetected) {
+                        // boolena for continueing storing when new data arrive.
+                        isFlagDetected = false;
+
+                    }
+                    else {
                         isFlagDetected = true;
-                        flagDetectCounter++;
-                    } else {
-                        flagDetectCounter++;
+                        listener.onArduinoMessage(bytes);
                     }
-                    if (flagDetectCounter >= 3) {
-                        Log.d(TAG, "TERMINATE CHARACTER IS HERE, TOTAL ARRAY RECEIVED: " + bytesReceived.toString());
-                        Log.d(TAG, "IT HAS LENGTH: " + bytesReceived.size());
-                        if (listener != null) {
-                            Log.d(TAG, "Received in total (excluding flags): " + String.valueOf(receiveCounter - 1));
-                            Log.d(TAG, Arrays.toString(toByteArray(bytesReceived)));
-                            listener.onArduinoMessage(toByteArray(bytesReceived.subList(0, bytesReceived.size() - 3)));
-                            Log.d(TAG, "sent to listener");
-                            bytesReceived.clear();
-                            receiveCounter = 0;
-                        }
-                    }
+                }
 
-                } else {
-                    isFlagDetected = false;
-                    flagDetectCounter = 0;
+                else if((char) bytes[0] == 'i'){
+                    MESSENGER_STATE = messengerState.image_state;
+                    // The size of the data file is stored in index: 1,2,3,4.
+                    byte[] byteLenFile = Arrays.copyOfRange(bytes, 1, 4);
+                    lenfile = ByteBuffer.wrap(byteLenFile).order(ByteOrder.LITTLE_ENDIAN).getInt();
+                    Log.d(TAG, "Expected length of image: " + lenfile);
+                    bytesReceived.addAll(toByteList(bytes));
+
+                    // Rest number of bytes
+                    lenfile -= bytes.length;
+
                 }
             }
-
         }
+        else if(MESSENGER_STATE == messengerState.image_state){
+            if (bytes[bytes.length-1] == (byte) '>'){
+                // final byte array is found.
+                MESSENGER_STATE = messengerState.no_state;
+                lenfile -= bytes.length;
+                if (lenfile < 0){
+                    Log.d(TAG, "The final byte array is received. Sending vidare");
+                    lenfile = 0;
+                    listener.onArduinoMessage(toByteArray(bytesReceived.subList(0, bytesReceived.size() - 3)));
+                }
+            }
+            else {
+                bytesReceived.addAll(toByteList(bytes));
+                lenfile -= bytes.length;
+
+            }
+        }
+
+
+
+//            if (bytes[bytes.length] == '>'){
+//                // the the message
+//            }
+//
+//        }
+//        if (bytes.length != 0) {
+//            Log.d(TAG, "RECEIVED: " + Arrays.toString(bytes));
+//
+//            bytesReceived.addAll(toByteList(bytes));
+//
+//
+//            int length = bytesReceived.size();
+//            Log.d(TAG, "bytesReceived current size: " + length);
+//            Log.d(TAG, "bytesReceived current values: " + Arrays.toString(toByteArray(bytesReceived)));
+//
+//            for (int i = 0; i < bytes.length; i++) {
+//                receiveCounter++;
+//                if (bytes[i] == '>') {
+//                    if (!isFlagDetected) {
+//                        isFlagDetected = true;
+//                        flagDetectCounter++;
+//                    } else {
+//                        flagDetectCounter++;
+//                    }
+//                    if (flagDetectCounter >= 3 && (bytesReceived.size() != 0)) {
+//                        Log.d(TAG, "TERMINATE CHARACTER IS HERE, TOTAL ARRAY RECEIVED: " + bytesReceived.toString());
+//                        Log.d(TAG, "IT HAS LENGTH: " + bytesReceived.size());
+//                        if (listener != null) {
+//                            Log.d(TAG, "Received in total (excluding flags): " + String.valueOf(receiveCounter - 1));
+//                            Log.d(TAG, Arrays.toString(toByteArray(bytesReceived)));
+//                            listener.onArduinoMessage(toByteArray(bytesReceived.subList(0, bytesReceived.size() - 3)));
+//                            Log.d(TAG, "sent to listener");
+//                            bytesReceived.clear();
+//                            receiveCounter = 0;
+//                        }
+//                    }
+//
+//                } else {
+//                    isFlagDetected = false;
+//                    flagDetectCounter = 0;
+//                }
+//            }
+//
+//        }
     }
 
     public boolean isOpened() {

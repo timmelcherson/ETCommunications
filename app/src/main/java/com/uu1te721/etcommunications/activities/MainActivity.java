@@ -16,7 +16,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -96,6 +95,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         decreaseAngleBtn.setOnClickListener(this);
         editAliasBtn.setOnClickListener(this);
         aliasIV.setOnClickListener(this);
+
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
 
@@ -115,6 +115,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //        viewBuddyList.add(initializeNewBuddy());
     }
 
+
+
+
     @Override
     public void onClick(View v) {
 
@@ -133,6 +136,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
 
             case R.id.init_buddy_msg_btn:
+                marduino.send("ST1".getBytes());
+                //marduino.close();
                 Intent msgIntent = new Intent(MainActivity.this, MessengerActivity.class);
                 startActivity(msgIntent);
                 break;
@@ -142,7 +147,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
 
             case R.id.increase_angle_btn:
-                increaseAngle();
+                Intent msgintent = new Intent(MainActivity.this, MessengerActivity.class);
+                startActivity(msgintent);
 
 
                 break;
@@ -157,7 +163,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onStart() {
         super.onStart();
         Log.d(TAG, "Main onStart");
-        marduino.send("ST0".getBytes());
+        marduino.setArduinoListener(this);
     }
 
     private int circleWidth;
@@ -279,6 +285,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onArduinoDetached() {
         Toast.makeText(this, "Arduino Detached", Toast.LENGTH_SHORT).show();
+        marduino.close();
     }
 
     @Override
@@ -298,7 +305,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         } else if (bytes[0] == 'D' && bytes[1] == 'S') {
             String str = "";
-            for (int i = 3; i < bytes.length-3; i++) {
+            for (int i = 3; i < bytes.length-5; i++) {
                 str += (char) bytes[i];
             }
             if (viewBuddyList.isEmpty()) {
@@ -319,8 +326,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         /* GET device ID */
         Toast.makeText(this, "Arduino OPENED", Toast.LENGTH_SHORT).show();
 
-        marduino.send(GET_ID_COMMAND.getBytes());
-        marduino.send(GET_ID_COMMAND.getBytes());
     }
 
     @Override
@@ -330,8 +335,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
         marduino.unsetArduinoListener();
         marduino.close();
+        Toast.makeText(this, "Main Activity destroyed", Toast.LENGTH_SHORT).show();
+        super.onDestroy();
+
     }
+
 }

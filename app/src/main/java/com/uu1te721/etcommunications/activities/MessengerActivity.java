@@ -5,8 +5,6 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.hardware.usb.UsbDevice;
-import android.hardware.usb.UsbDeviceConnection;
-import android.hardware.usb.UsbManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -25,13 +23,11 @@ import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.felhr.usbserial.UsbSerialDevice;
+import com.uu1te721.etcommunications.R;
+import com.uu1te721.etcommunications.adapters.MessengerRecyclerViewAdapter;
 import com.uu1te721.etcommunications.arduino.CustomArduino;
 import com.uu1te721.etcommunications.arduino.CustomArduinoListener;
 import com.uu1te721.etcommunications.uicomponents.MessageCard;
-import com.uu1te721.etcommunications.adapters.MessengerRecyclerViewAdapter;
-import com.uu1te721.etcommunications.R;
-import com.uu1te721.etcommunications.utils.UsbService;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -42,9 +38,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-
 import static com.uu1te721.etcommunications.utils.Constants.IMAGE_DISPLAY_SCALE_FACTOR;
-
 import static com.uu1te721.etcommunications.utils.Constants.REQUEST_TAKE_PHOTO;
 import static com.uu1te721.etcommunications.utils.Constants.TAG;
 import static com.uu1te721.etcommunications.utils.Constants.TRANSMISSION_FLAG_IMAGE;
@@ -126,10 +120,8 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     @Override
     protected void onStart() {
-        super.onStart();
         mArduino.setArduinoListener(this);
-        Log.d(TAG, "Messenger onStart, sending ST1");
-        mArduino.send("ST1".getBytes());
+        super.onStart();
     }
 
     @Override
@@ -144,23 +136,23 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     public void onArduinoMessage(byte[] bytes) {
 
         if (bytes.length != 0) {
-
             char flag = 0; // No flag set
-
             if (!isFlagSet) {
                 flag = (char) bytes[0];
                 isFlagSet = true;
-                bytes = Arrays.copyOfRange(bytes, 1, bytes.length);
             }
 
             switch (flag) {
 
                 case 'i':
-                    receiveImage(bytes);
+                    byte[] bbi = Arrays.copyOfRange(bytes, 5, (int) bytes.length-3);
+                    receiveImage(bbi);
                     break;
 
                 case 't':
-                    receiveMessage(bytes);
+
+                    byte[] bbt = Arrays.copyOfRange(bytes, 1, (int) bytes.length-3);
+                    receiveMessage(bbt);
                     break;
 
                 default:
@@ -185,9 +177,9 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
         mArduino.unsetArduinoListener();
         mArduino.close();
+        super.onDestroy();
     }
 
     public void sendMessage() {
@@ -197,7 +189,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
         // This method called when send button pressed.
         String msg = mWriteMessageEt.getText().toString();
-        byte[] arrayForTransmission = addTransmissionFlagToByteArray(TRANSMISSION_FLAG_TEXT, msg.getBytes());
+        byte[] arrayForTransmission = addTransmissionFlagToByteArray(TRANSMISSION_FLAG_TEXT, msg.getBytes()); //'t' + msg + '>>>'
 
         if ((char) arrayForTransmission[0] == 't') {
             mArduino.send(arrayForTransmission);
@@ -297,6 +289,8 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     @Override
     public boolean onSupportNavigateUp() {
+        mArduino.send("ST0".getBytes());
+        //mArduino.close();
         super.onBackPressed();
         return true;
     }
