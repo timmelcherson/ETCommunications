@@ -15,10 +15,12 @@ public class TransmissionUtils {
             ByteBuffer combined;
             // its an media file. Create byte buffer of format: {FLAG, size, data, '>'}
             byte[] byteLenArr =  ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(arr.length).array();
-            combined = allocate(1 + 4 + arr.length + 2);
+            combined = allocate(1 + 4 + arr.length + 4);
             combined.put(flag);
             combined.put(byteLenArr);
             combined.put(arr);
+            combined.put((byte) '>');
+            combined.put((byte) '>');
             combined.put((byte) '>');
             combined.put((byte) '\r');
             return combined.array();
@@ -26,10 +28,12 @@ public class TransmissionUtils {
 
         else {
             ByteBuffer combined;
-            combined = allocate(2 + arr.length + 2);
+            combined = allocate(2 + arr.length + 4);
             combined.put(flag);
             combined.put((byte) arr.length);
             combined.put(arr);
+            combined.put((byte) '>');
+            combined.put((byte) '>');
             combined.put((byte) '>');
             combined.put((byte) '\r');
             return combined.array();

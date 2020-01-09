@@ -161,18 +161,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     protected void onStart() {
+        Log.d(TAG, "Main onStart, set arduino listener");
         super.onStart();
         mArduino.send("ST0".getBytes());
-        Log.d(TAG, "Main onStart, set arduino listener");
         mArduino.setArduinoListener(this);
+        mArduino.resetArduinoState();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        Log.d(TAG, "Unset arduino listener in main");
-        mArduino.stateSwitched();
-        mArduino.unsetArduinoListener();
+//        Log.d(TAG, "Unset arduino listener in main");
+//        mArduino.resetArduinoState();
+//        mArduino.unsetArduinoListener();
     }
 
     @Override
@@ -181,7 +182,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Log.d(TAG, "main onresume");
         sensorManager.registerListener(this, rotationSensor,
                 SensorManager.SENSOR_DELAY_NORMAL);
-        mArduino.stateSwitched();
     }
 
     @Override
@@ -283,7 +283,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         } else if (bytes[0] == 'D' && bytes[1] == 'S') {
             String str = "";
-            for (int i = 3; i < bytes.length - 5; i++) {
+            for (int i = 3; i < bytes.length; i++) {
                 str += (char) bytes[i];
             }
             if (viewBuddyList.isEmpty()) {
@@ -333,8 +333,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onArduinoOpened() {
         /* GET device ID */
-        Toast.makeText(this, "Arduino OPENED", Toast.LENGTH_SHORT).show();
-
+        Toast.makeText(this, "Arduino opened in Main Activity", Toast.LENGTH_SHORT).show();
     }
 
     @Override

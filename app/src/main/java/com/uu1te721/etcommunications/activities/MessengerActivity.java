@@ -126,18 +126,19 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     @Override
     protected void onStart() {
-        mArduino.setArduinoListener(this);
-        mArduino.send("ST1".getBytes());
         Log.d(TAG, "setting arduino listener in messenger");
         super.onStart();
+        mArduino.setArduinoListener(this);
+        mArduino.send("ST1".getBytes());
+        mArduino.resetArduinoState();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        Log.d(TAG, "Stopping messenger, unset arduino listener");
-        mArduino.stateSwitched();
-        mArduino.unsetArduinoListener();
+//        Log.d(TAG, "Stopping messenger, unset arduino listener");
+//        mArduino.resetArduinoState();
+//        mArduino.unsetArduinoListener();
     }
 
     @Override
@@ -151,6 +152,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     @Override
     public void onArduinoMessage(byte[] bytes) {
 
+        Log.d(TAG, "Got message in messenger activity: " + Arrays.toString(bytes));
         if (bytes.length != 0) {
             char flag = 0; // No flag set
             if (!isFlagSet) {
@@ -161,13 +163,13 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
             switch (flag) {
 
                 case 'i':
-                    byte[] bbi = Arrays.copyOfRange(bytes, 5, (int) bytes.length-4);
+                    byte[] bbi = Arrays.copyOfRange(bytes, 5, (int) bytes.length);
                     receiveImage(bbi);
                     break;
 
                 case 't':
 
-                    byte[] bbt = Arrays.copyOfRange(bytes, 1, (int) bytes.length-4);
+                    byte[] bbt = Arrays.copyOfRange(bytes, 2, (int) bytes.length);
                     receiveMessage(bbt);
                     break;
 
@@ -184,6 +186,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     @Override
     public void onArduinoOpened() {
+        Toast.makeText(this, "Arduino opened in Messenger Activity", Toast.LENGTH_SHORT).show();
     }
 
     @Override
