@@ -47,10 +47,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     public static final String TAG = "TAG";
     SensorManager sensorManager;
-    Sensor sensor;
+    Sensor accSensor, gyroSensor, rotationSensor;
 
     private CustomArduino marduino;
-
 
     private List<UwiBuddy> buddyList = new ArrayList<>();
     private List<View> viewBuddyList = new ArrayList<>();
@@ -63,6 +62,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Button increaseAngleBtn, decreaseAngleBtn, editAliasBtn;
 
     private String GET_ID_COMMAND = "00"; //ASCII for '0';
+    private double initialAngle = 90;
+    private int buddyLeft, buddyRight, buddyTop, buddyBottom, buddyWidth, buddyHeight, circleWidth, circleHeight
+            , displayWidth, displayHeight;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -97,9 +99,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         aliasIV.setOnClickListener(this);
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        sensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
-
-        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
+        accSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+        gyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR);
+//        sensorManager.registerListener(this, gyroSensor, SensorManager.SENSOR_DELAY_NORMAL);
 
         /* Serial connection to Arduino */
         marduino = new CustomArduino(this, 115200);
@@ -108,14 +111,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         marduino.setDelimiter((byte) '\r');
         marduino.setArduinoListener(this);
 
-        buddyAngle = 225.0;
         setDisplayMeasurements();
         getCircleMeasurements();
 
 //        viewBuddyList.add(initializeNewBuddy());
     }
-
-
 
 
     @Override
@@ -149,12 +149,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.increase_angle_btn:
                 Intent msgintent = new Intent(MainActivity.this, MessengerActivity.class);
                 startActivity(msgintent);
-
-
                 break;
 
             case R.id.decrease_angle_btn:
-                decreaseAngle();
+//                decreaseAngle();
                 break;
         }
     }
@@ -166,8 +164,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         marduino.setArduinoListener(this);
     }
 
-    private int circleWidth;
-    private int circleHeight;
+    @Override
+    protected void onStop() {
+        super.onStop();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        sensorManager.registerListener(this, rotationSensor,
+                SensorManager.SENSOR_DELAY_NORMAL);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        sensorManager.unregisterListener(this);
+    }
 
     public void getCircleMeasurements() {
         circle = findViewById(R.id.main_circle);
@@ -181,69 +194,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
     }
 
-    private int buddyLeft;
-    private int buddyRight;
-    private int buddyTop;
-    private int buddyBottom;
-    private int buddyWidth;
-    private int buddyHeight;
-
-    public void getViewMeasurements(View view) {
-        view.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-
-                buddyLeft = view.getLeft();
-                buddyRight = view.getRight();
-                buddyTop = view.getTop();
-                buddyBottom = view.getBottom();
-                buddyWidth = view.getWidth();
-                buddyHeight = view.getHeight();
-                view.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                Log.d(TAG, "unlistened to changes");
-                setBuddyAngle(view, buddyAngle);
-            }
-        });
-    }
-
-    int displayWidth;
-    int displayHeight;
-    double buddyAngle;
-
     public void setDisplayMeasurements() {
         Display display = getWindowManager().getDefaultDisplay();
         Point size = new Point();
         display.getSize(size);
         displayWidth = size.x;
         displayHeight = size.y;
-    }
-
-    public void increaseAngle() {
-        buddyAngle = buddyAngle + 10;
-        if (buddyAngle >= 360) {
-            buddyAngle = 0;
-        }
-        setBuddyAngle(viewBuddyList.get(0), buddyAngle);
-    }
-
-    public void decreaseAngle() {
-        buddyAngle = buddyAngle - 10;
-        if (buddyAngle <= 0) {
-            buddyAngle = 360;
-        }
-        setBuddyAngle(viewBuddyList.get(0), buddyAngle);
-    }
-
-    public void setBuddyAngle(View view, double angle) {
-        double radians = Math.toRadians(angle);
-        view.setX((float) (displayWidth / 2) - (float) (view.getWidth() / 2) + (float) Math.cos(radians) * ((float) circleWidth / 2));
-        view.setY((float) (displayHeight / 2) - (float) (view.getHeight()) / 2 - (float) Math.sin(radians) * ((float) circleHeight / 2));
-    }
-
-    public void addBuddyToLayout(View view) {
-        ConstraintLayout layout = findViewById(R.id.main_layout);
-        getViewMeasurements(view);
-        runOnUiThread(() -> layout.addView(view));
     }
 
     public View initializeNewBuddy() {
@@ -263,17 +219,31 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return v;
     }
 
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int i) {
-
+    public void addBuddyToLayout(View view) {
+        ConstraintLayout layout = findViewById(R.id.main_layout);
+        getViewMeasurements(view);
+        runOnUiThread(() -> layout.addView(view));
     }
 
-    @Override
-    public void onSensorChanged(SensorEvent sensorEvent) {
-        accX.setText("X: " + sensorEvent.values[0]);
-        accY.setText("Y: " + sensorEvent.values[1]);
-        accZ.setText("Z: " + sensorEvent.values[2]);
+    public void getViewMeasurements(View view) {
+        view.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+
+                buddyLeft = view.getLeft();
+                buddyRight = view.getRight();
+                buddyTop = view.getTop();
+                buddyBottom = view.getBottom();
+                buddyWidth = view.getWidth();
+                buddyHeight = view.getHeight();
+                view.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                Log.d(TAG, "unlistened to changes");
+                setBuddyAngle(view, initialAngle);
+            }
+        });
     }
+
+
 
     @Override
     public void onArduinoAttached(UsbDevice device) {
@@ -297,7 +267,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         if (bytes[0] == 'I' && bytes[1] == 'D') {
             String str = "";
-            for (int i = 3; i < bytes.length-3; i++) {
+            for (int i = 3; i < bytes.length - 3; i++) {
                 str += (char) bytes[i];
             }
 
@@ -305,7 +275,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         } else if (bytes[0] == 'D' && bytes[1] == 'S') {
             String str = "";
-            for (int i = 3; i < bytes.length-5; i++) {
+            for (int i = 3; i < bytes.length - 5; i++) {
                 str += (char) bytes[i];
             }
             if (viewBuddyList.isEmpty()) {
@@ -319,6 +289,37 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         runOnUiThread(() -> {
             txtPosition.setText(str);
         });
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor accSensor, int i) {
+
+    }
+
+    @Override
+    public final void onSensorChanged(SensorEvent event) {
+        if (event.sensor.getType() == Sensor.TYPE_GAME_ROTATION_VECTOR) {
+            float[] rotMatrix = new float[9];
+            float[] rotVals = new float[3];
+
+            SensorManager.getRotationMatrixFromVector(rotMatrix, event.values);
+            SensorManager.remapCoordinateSystem(rotMatrix,
+                    SensorManager.AXIS_X, SensorManager.AXIS_Y, rotMatrix);
+
+            SensorManager.getOrientation(rotMatrix, rotVals);
+            float yaw = (float) Math.toDegrees(rotVals[0]);
+
+            double angle = (double)(initialAngle + yaw);
+            if (!viewBuddyList.isEmpty())
+                setBuddyAngle(viewBuddyList.get(0), angle);
+        }
+    }
+
+    public void setBuddyAngle(View view, double angle) {
+        Log.d(TAG, "Setting buddy angle to: " + angle + " degrees");
+        double radians = Math.toRadians(angle);
+        view.setX((float) (displayWidth / 2) - (float) (view.getWidth() / 2) + (float) Math.cos(radians) * ((float) circleWidth / 2));
+        view.setY((float) (displayHeight / 2) - (float) (view.getHeight()) / 2 - (float) Math.sin(radians) * ((float) circleHeight / 2));
     }
 
     @Override
