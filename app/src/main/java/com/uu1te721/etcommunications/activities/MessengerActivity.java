@@ -79,6 +79,12 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowHomeEnabled(true);
 
+        Bundle extras = getIntent().getExtras();
+
+        if (extras != null) {
+
+        }
+
         mSendBtn = findViewById(R.id.send_message_btn);
         mCameraBtn = findViewById(R.id.camera_btn);
         mWriteMessageEt = findViewById(R.id.write_message_et);
@@ -122,7 +128,16 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     protected void onStart() {
         mArduino.setArduinoListener(this);
         mArduino.send("ST1".getBytes());
+        Log.d(TAG, "setting arduino listener in messenger");
         super.onStart();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d(TAG, "Stopping messenger, unset arduino listener");
+        mArduino.stateSwitched();
+        mArduino.unsetArduinoListener();
     }
 
     @Override
@@ -289,19 +304,6 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         lm.smoothScrollToPosition(mMessageFeed, null, mMessageCardList.size());
     }
 
-    @Override
-    public boolean onSupportNavigateUp() {
-        mArduino.send("ST0".getBytes());
-        //mArduino.close();
-        super.onBackPressed();
-        return true;
-    }
-
-    @Override
-    public void onBackPressed() {
-        super.onBackPressed();
-    }
-
 
     // *********************************************************************************************
     // Function: Take picture
@@ -360,4 +362,15 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     // END: take picture
     // *********************************************************************************************
 
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        super.onBackPressed();
+        return true;
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+    }
 }

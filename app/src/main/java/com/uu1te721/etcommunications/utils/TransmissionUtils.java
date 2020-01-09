@@ -1,5 +1,7 @@
 package com.uu1te721.etcommunications.utils;
 
+import android.util.Log;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -20,7 +22,6 @@ public class TransmissionUtils {
             combined.put((byte) '>');
             combined.put((byte) '\r');
             return combined.array();
-
         }
 
         else {

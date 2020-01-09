@@ -15,4 +15,6 @@ public class Constants {
     // Transmission Flags
     public static final byte TRANSMISSION_FLAG_IMAGE = (byte)'i';
     public static final byte TRANSMISSION_FLAG_TEXT = (byte)'t';
+
+    public static final String SWITCH_STATE = "500";
 }

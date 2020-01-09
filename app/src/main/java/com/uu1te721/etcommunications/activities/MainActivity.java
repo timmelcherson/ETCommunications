@@ -31,6 +31,7 @@ import com.uu1te721.etcommunications.adapters.UwiBuddy;
 import com.uu1te721.etcommunications.adapters.UwiNeighborhood;
 import com.uu1te721.etcommunications.arduino.CustomArduino;
 import com.uu1te721.etcommunications.arduino.CustomArduinoListener;
+import com.uu1te721.etcommunications.utils.Constants;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,7 +50,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     SensorManager sensorManager;
     Sensor accSensor, gyroSensor, rotationSensor;
 
-    private CustomArduino marduino;
+    private CustomArduino mArduino;
 
     private List<UwiBuddy> buddyList = new ArrayList<>();
     private List<View> viewBuddyList = new ArrayList<>();
@@ -105,11 +106,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //        sensorManager.registerListener(this, gyroSensor, SensorManager.SENSOR_DELAY_NORMAL);
 
         /* Serial connection to Arduino */
-        marduino = new CustomArduino(this, 115200);
-        marduino.addVendorId(10755);
-        marduino.addVendorId(9025);
-        marduino.setDelimiter((byte) '\r');
-        marduino.setArduinoListener(this);
+        mArduino = new CustomArduino(this, 115200);
+        mArduino.addVendorId(10755);
+        mArduino.addVendorId(9025);
+        mArduino.setDelimiter((byte) '\r');
+        mArduino.setArduinoListener(this);
 
         setDisplayMeasurements();
         getCircleMeasurements();
@@ -124,8 +125,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         switch (v.getId()) {
 
             case R.id.imageViewAvatar:
-                marduino.send(GET_ID_COMMAND.getBytes());
-                marduino.send(GET_ID_COMMAND.getBytes());
+                mArduino.send(GET_ID_COMMAND.getBytes());
+                mArduino.send(GET_ID_COMMAND.getBytes());
 
             case R.id.btn_editAlias:
                 Toast.makeText(this, "Edit alias btn clicked!", Toast.LENGTH_SHORT).show();
@@ -136,9 +137,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
 
             case R.id.init_buddy_msg_btn:
-                marduino.send("ST1".getBytes());
-                //marduino.close();
+                mArduino.send("ST1".getBytes());
+                //mArduino.close();
                 Intent msgIntent = new Intent(MainActivity.this, MessengerActivity.class);
+                msgIntent.putExtra(Constants.SWITCH_STATE, true);
                 startActivity(msgIntent);
                 break;
 
@@ -160,20 +162,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onStart() {
         super.onStart();
-        Log.d(TAG, "Main onStart");
-        marduino.setArduinoListener(this);
+        mArduino.send("ST0".getBytes());
+        Log.d(TAG, "Main onStart, set arduino listener");
+        mArduino.setArduinoListener(this);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
+        Log.d(TAG, "Unset arduino listener in main");
+        mArduino.stateSwitched();
+        mArduino.unsetArduinoListener();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        Log.d(TAG, "main onresume");
         sensorManager.registerListener(this, rotationSensor,
                 SensorManager.SENSOR_DELAY_NORMAL);
+        mArduino.stateSwitched();
     }
 
     @Override
@@ -248,14 +256,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onArduinoAttached(UsbDevice device) {
 
-        marduino.open(device);
+        mArduino.open(device);
     }
 
 
     @Override
     public void onArduinoDetached() {
         Toast.makeText(this, "Arduino Detached", Toast.LENGTH_SHORT).show();
-        marduino.close();
+        mArduino.close();
     }
 
     @Override
@@ -331,13 +339,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onUsbPermissionDenied() {
-        marduino.reopen();
+        mArduino.reopen();
     }
 
     @Override
     protected void onDestroy() {
-        marduino.unsetArduinoListener();
-        marduino.close();
+        mArduino.unsetArduinoListener();
+        mArduino.close();
         Toast.makeText(this, "Main Activity destroyed", Toast.LENGTH_SHORT).show();
         super.onDestroy();
 
