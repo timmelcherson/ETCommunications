@@ -14,7 +14,6 @@ import com.felhr.usbserial.UsbSerialDevice;
 import com.felhr.usbserial.UsbSerialInterface;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -22,6 +21,7 @@ import java.util.List;
 
 import static com.uu1te721.etcommunications.utils.Constants.ACTION_USB_PERMISSION;
 import static com.uu1te721.etcommunications.utils.Constants.TAG;
+import static java.nio.ByteBuffer.allocate;
 
 
 public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
@@ -127,13 +127,20 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
             Log.d(TAG, "SENDING array of size: " + bytes.length);
             while (bytes.length - index > framesize) {
                 Log.d(TAG, "Sending chunk nr: " + chunk);
-                byte[] partialArray = Arrays.copyOfRange(bytes, index, index + framesize);
-                Log.d(TAG, Arrays.toString(partialArray));
-                serialPort.write(partialArray);
+
+
+                byte[] partialArray    = Arrays.copyOfRange(bytes, index, index + framesize-1);
+
+                ByteBuffer partialArrWithCarriageReturn = allocate(partialArray.length + 1);;
+                partialArrWithCarriageReturn.put(partialArray);
+                partialArrWithCarriageReturn.put((byte) '\r');
+                Log.d(TAG, "length is: " + partialArrWithCarriageReturn.array().length);
+                Log.d(TAG, Arrays.toString(partialArrWithCarriageReturn.array()));
+                serialPort.write(partialArrWithCarriageReturn.array());
                 index = index + framesize;
                 chunk++;
                 try {
-                    Thread.sleep(100);
+                    Thread.sleep(200);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                     Log.d(TAG, "Error sleeping: " + String.valueOf(e));
@@ -143,6 +150,8 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
             Log.d(TAG, "--------------------");
             byte[] finalArray = Arrays.copyOfRange(bytes, index, bytes.length);
             Log.d(TAG, Arrays.toString(finalArray));
+
+            Log.d(TAG, "last Element in array is:" +  finalArray[finalArray.length -1]);
             serialPort.write(finalArray);
         }
     }
@@ -255,69 +264,103 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
     boolean isFlagDetected = false;
     int flagDetectCounter = 0;
     int lenfile = 0;
+
+    int counter = 0;
     @Override
     public void onReceivedData(byte[] bytes) {
 
-        if (MESSENGER_STATE == messengerState.no_state) {
-            if (bytes.length > 4){
-                // E.g: {t, length, data, '>'} where data must > 0
-                //listener.onArduinoMessage()
+        Log.d(TAG,"Some frame received. Length is: " + String.valueOf(bytes.length));
 
-                if (((char) bytes[0] == 'D') && ((char) bytes[1] == 'S')){
-                    listener.onArduinoMessage(bytes);
-                }
-                 else if ((char) bytes[0] == 't'){
-                    // its a text. Get the length.
-                    int lentext = (int) bytes[1];
+        if (bytes.length != 0){
 
-                    // Check if the whole message is in the current byte array.
-                    if (lentext > (bytes.length - 4)){
-                        // message splitted in different chuncks.
+            for (byte bb: bytes) {
 
-                        // Store current byte array
-                        bytesReceived.addAll(toByteList(bytes));
-
-                        // boolena for continueing storing when new data arrive.
-                        isFlagDetected = false;
-
-                    }
-                    else {
-                        isFlagDetected = true;
-                        listener.onArduinoMessage(bytes);
-                    }
+                if (bb == (char) 't'){
+                    counter += bytes.length;
                 }
 
-                else if((char) bytes[0] == 'i'){
-                    MESSENGER_STATE = messengerState.image_state;
-                    // The size of the data file is stored in index: 1,2,3,4.
-                    byte[] byteLenFile = Arrays.copyOfRange(bytes, 1, 4);
-                    lenfile = ByteBuffer.wrap(byteLenFile).order(ByteOrder.LITTLE_ENDIAN).getInt();
-                    Log.d(TAG, "Expected length of image: " + lenfile);
-                    bytesReceived.addAll(toByteList(bytes));
+                else if(bb == (char) 'i'){
+                    counter += bytes.length;
 
-                    // Rest number of bytes
-                    lenfile -= bytes.length;
+                }
 
+                else if (bb == (char) '>') {
+                    Log.d(TAG, "All package received. Length is: " + counter);
+                    counter = 0;
                 }
             }
         }
-        else if(MESSENGER_STATE == messengerState.image_state){
-            if (bytes[bytes.length-1] == (byte) '>'){
-                // final byte array is found.
-                MESSENGER_STATE = messengerState.no_state;
-                lenfile -= bytes.length;
-                if (lenfile < 0){
-                    Log.d(TAG, "The final byte array is received. Sending vidare");
-                    lenfile = 0;
-                    listener.onArduinoMessage(toByteArray(bytesReceived.subList(0, bytesReceived.size() - 3)));
-                }
-            }
-            else {
-                bytesReceived.addAll(toByteList(bytes));
-                lenfile -= bytes.length;
-
-            }
-        }
+//
+//        if (MESSENGER_STATE == messengerState.no_state) {
+//            if (bytes.length > 4){
+//                // E.g: {t, length, data, '>'} where data must > 0
+//                //listener.onArduinoMessage()
+//
+//                if (((char) bytes[0] == 'D') && ((char) bytes[1] == 'S')){
+//                    listener.onArduinoMessage(bytes);
+//                    bytesReceived.clear();
+//
+//                }
+//                 else if ((char) bytes[0] == 't'){
+//                     Log.d(TAG, "Receiving a text of length: " + bytes.length);
+//                    // its a text. Get the length.
+//                    int lentext = (int) bytes[1];
+//
+//                    // Check if the whole message is in the current byte array.
+//                    if (lentext > (bytes.length - 4)){
+//                        // message splitted in different chuncks.
+//
+//                        // Store current byte array
+//                        bytesReceived.addAll(toByteList(bytes));
+//                        // boolena for continueing storing when new data arrive.
+//                        isFlagDetected = false;
+//
+//                    }
+//                    else {
+//                        isFlagDetected = true;
+//                        listener.onArduinoMessage(bytes);
+//                        bytesReceived.clear();
+//
+//                    }
+//                }
+//
+//                else if((char) bytes[0] == 'i'){
+//                    Log.d(TAG, "Receiving a image");
+//                    MESSENGER_STATE = messengerState.image_state;
+//                    // The size of the data file is stored in index: 1,2,3,4.
+//                    byte[] byteLenFile = Arrays.copyOfRange(bytes, 1, 4);
+//                    lenfile = ByteBuffer.wrap(byteLenFile).order(ByteOrder.LITTLE_ENDIAN).getInt();
+//                    Log.d(TAG, "Expected length of image: " + lenfile);
+//                    Toast.makeText(context, "Expected length of image: " + lenfile, Toast.LENGTH_SHORT).show();
+//                    bytesReceived.addAll(toByteList(bytes));
+//
+//                    // Rest number of bytes
+//                    lenfile -= bytes.length;
+//
+//                }
+//            }
+//        }
+//        else if(MESSENGER_STATE == messengerState.image_state){
+//            if (bytes[bytes.length-1] == (byte) '>'){
+//                // final byte array is found.
+//                MESSENGER_STATE = messengerState.no_state;
+//                lenfile -= bytes.length;
+//                if (lenfile < 0){
+//                    Log.d(TAG, "The final byte array is received. Sending vidare");
+//                    Toast.makeText(context, "The final byte array is received. Sending vidare" , Toast.LENGTH_SHORT).show();
+//
+//                    lenfile = 0;
+//                    listener.onArduinoMessage(toByteArray(bytesReceived.subList(0, bytesReceived.size() - 3)));
+//                    bytesReceived.clear();
+//                }
+//            }
+//            else {
+//
+//                bytesReceived.addAll(toByteList(bytes));
+//                lenfile -= bytes.length;
+//
+//            }
+//        }
 
 
 
