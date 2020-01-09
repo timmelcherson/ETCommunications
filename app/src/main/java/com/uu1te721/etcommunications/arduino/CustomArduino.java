@@ -14,6 +14,7 @@ import com.felhr.usbserial.UsbSerialDevice;
 import com.felhr.usbserial.UsbSerialInterface;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -43,14 +44,7 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
     private static final int DEFAULT_BAUD_RATE = 9600;
     private static final byte DEFAULT_DELIMITER = '\n';
 
-    public enum messengerState {
-        no_state,
-        ranging_state,
-        text_state,
-        image_state
-    }
 
-    messengerState MESSENGER_STATE = messengerState.no_state;
 
     public CustomArduino(Context context, int baudRate) {
         init(context, baudRate);
@@ -263,151 +257,160 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
 
     boolean isFlagDetected = false;
     int flagDetectCounter = 0;
-    int lenfile = 0;
 
     int counter = 0;
+
+    boolean bufferingInProgress = false;
+
+    public enum messengerState {
+        no_state,
+        ranging_state,
+        text_state,
+        image_state
+    }
+
+
+    int lentext = 0;
+    int lenImage = 0;
+    byte[] lenImageArr = new byte[4];
+    byte[] distanceArr = new byte[4];
+
+
+    messengerState MESSENGER_STATE = messengerState.no_state;
+
     @Override
     public void onReceivedData(byte[] bytes) {
 
-        Log.d(TAG,"Some frame received. Length is: " + String.valueOf(bytes.length));
+        if (bytes.length > 0) {
+            Log.d(TAG, "Something received. Length is " + bytes.length);
 
-        if (bytes.length != 0){
+            if (bufferingInProgress){
+                if (MESSENGER_STATE == messengerState.ranging_state){
+                    for (int i=0; i < bytes.length; i++){
 
-            for (byte bb: bytes) {
+                        if (counter > 2 && counter < 6){
+                            distanceArr[counter -2] = bytes[counter];
+                        }
+                        else if(counter == 6){
+                            Log.d(TAG, "Distance found: " + distanceArr.toString());
+                            listener.onArduinoMessage(toByteArray(bytesReceived.subList(0, bytesReceived.size() - 1)));
+                            MESSENGER_STATE = messengerState.no_state;
+                            counter = 0;
+                            lentext = 0;
+                            lenImage = 0;
+                        }
 
-                if (bb == (char) 't'){
-                    counter += bytes.length;
+                        counter ++;
+                    }
                 }
 
-                else if(bb == (char) 'i'){
-                    counter += bytes.length;
+                else if(MESSENGER_STATE == messengerState.text_state){
 
+                    if (lentext <= 2 ){
+                        // The entire text is buffered.
+                            Log.d(TAG, "The entire text is buffered");
+                            listener.onArduinoMessage(toByteArray(bytesReceived.subList(0, bytesReceived.size() - 1)));
+                            MESSENGER_STATE = messengerState.no_state;
+
+                        counter = 0;
+                            lentext = 0;
+                            lenImage = 0;
+                    }
+                    else {
+                        lentext -= bytes.length;
+                        bytesReceived.addAll(toByteList(bytes));
+                        counter += bytes.length;
+
+                    }
                 }
+                else if(MESSENGER_STATE == messengerState.image_state){
+                    if (lenImage <= 5 ){
+                        // The entire text is buffered.
+                        Log.d(TAG, "The entire image is buffered");
+                        Log.d(TAG, "Image size is: " + counter);
+                        listener.onArduinoMessage(toByteArray(bytesReceived.subList(0, bytesReceived.size() - 1)));
+                        MESSENGER_STATE = messengerState.no_state;
 
-                else if (bb == (char) '>') {
-                    Log.d(TAG, "All package received. Length is: " + counter);
-                    counter = 0;
+                        counter = 0;
+                        lentext = 0;
+                        lenImage = 0;
+
+                    }
+                    else {
+                        lentext -= bytes.length;
+                        bytesReceived.addAll(toByteList(bytes));
+                        counter += bytes.length;
+
+                    }
                 }
             }
-        }
-//
-//        if (MESSENGER_STATE == messengerState.no_state) {
-//            if (bytes.length > 4){
-//                // E.g: {t, length, data, '>'} where data must > 0
-//                //listener.onArduinoMessage()
-//
-//                if (((char) bytes[0] == 'D') && ((char) bytes[1] == 'S')){
-//                    listener.onArduinoMessage(bytes);
-//                    bytesReceived.clear();
-//
-//                }
-//                 else if ((char) bytes[0] == 't'){
-//                     Log.d(TAG, "Receiving a text of length: " + bytes.length);
-//                    // its a text. Get the length.
-//                    int lentext = (int) bytes[1];
-//
-//                    // Check if the whole message is in the current byte array.
-//                    if (lentext > (bytes.length - 4)){
-//                        // message splitted in different chuncks.
-//
-//                        // Store current byte array
-//                        bytesReceived.addAll(toByteList(bytes));
-//                        // boolena for continueing storing when new data arrive.
-//                        isFlagDetected = false;
-//
-//                    }
-//                    else {
-//                        isFlagDetected = true;
-//                        listener.onArduinoMessage(bytes);
-//                        bytesReceived.clear();
-//
-//                    }
-//                }
-//
-//                else if((char) bytes[0] == 'i'){
-//                    Log.d(TAG, "Receiving a image");
-//                    MESSENGER_STATE = messengerState.image_state;
-//                    // The size of the data file is stored in index: 1,2,3,4.
-//                    byte[] byteLenFile = Arrays.copyOfRange(bytes, 1, 4);
-//                    lenfile = ByteBuffer.wrap(byteLenFile).order(ByteOrder.LITTLE_ENDIAN).getInt();
-//                    Log.d(TAG, "Expected length of image: " + lenfile);
-//                    Toast.makeText(context, "Expected length of image: " + lenfile, Toast.LENGTH_SHORT).show();
-//                    bytesReceived.addAll(toByteList(bytes));
-//
-//                    // Rest number of bytes
-//                    lenfile -= bytes.length;
-//
-//                }
-//            }
-//        }
-//        else if(MESSENGER_STATE == messengerState.image_state){
-//            if (bytes[bytes.length-1] == (byte) '>'){
-//                // final byte array is found.
-//                MESSENGER_STATE = messengerState.no_state;
-//                lenfile -= bytes.length;
-//                if (lenfile < 0){
-//                    Log.d(TAG, "The final byte array is received. Sending vidare");
-//                    Toast.makeText(context, "The final byte array is received. Sending vidare" , Toast.LENGTH_SHORT).show();
-//
-//                    lenfile = 0;
-//                    listener.onArduinoMessage(toByteArray(bytesReceived.subList(0, bytesReceived.size() - 3)));
-//                    bytesReceived.clear();
-//                }
-//            }
-//            else {
-//
-//                bytesReceived.addAll(toByteList(bytes));
-//                lenfile -= bytes.length;
-//
-//            }
-//        }
+                //Log.d(TAG, "Some frame received. Length is: " + String.valueOf(bytes.length));
+
+            if (MESSENGER_STATE == messengerState.no_state){
+
+                // LOOK FOR STATE CHANGES.
+                for (int i=0; i < bytes.length; i++){
+                    if ((char) bytes[i] == 't'){
+                        // a text is found. If no state is initiated. Start text state.
+                        if ( MESSENGER_STATE == messengerState.no_state){
+                            MESSENGER_STATE = messengerState.text_state;
+                            Log.d(TAG, "Buffering a new text message");
+                        }
+                    }
+
+                    else if((char) bytes[i] == 'i'){
+                        if ( MESSENGER_STATE == messengerState.no_state){
+                            MESSENGER_STATE = messengerState.text_state;
+                            Log.d(TAG, "Buffering a new image message");
+
+                        }
+                    }
+
+                    else if ((char) bytes[i] == 'D'){
+                        if ( MESSENGER_STATE == messengerState.no_state) {
+                            MESSENGER_STATE = messengerState.ranging_state;
+                        }
+                    }
 
 
+                    if (MESSENGER_STATE == messengerState.image_state){
+                        if (counter > 0 && counter < 4){
+                            lenImageArr[counter-1] =  bytes[counter];
+                        }
 
-//            if (bytes[bytes.length] == '>'){
-//                // the the message
-//            }
-//
-//        }
-//        if (bytes.length != 0) {
-//            Log.d(TAG, "RECEIVED: " + Arrays.toString(bytes));
-//
-//            bytesReceived.addAll(toByteList(bytes));
-//
-//
-//            int length = bytesReceived.size();
-//            Log.d(TAG, "bytesReceived current size: " + length);
-//            Log.d(TAG, "bytesReceived current values: " + Arrays.toString(toByteArray(bytesReceived)));
-//
-//            for (int i = 0; i < bytes.length; i++) {
-//                receiveCounter++;
-//                if (bytes[i] == '>') {
-//                    if (!isFlagDetected) {
-//                        isFlagDetected = true;
-//                        flagDetectCounter++;
-//                    } else {
-//                        flagDetectCounter++;
-//                    }
-//                    if (flagDetectCounter >= 3 && (bytesReceived.size() != 0)) {
-//                        Log.d(TAG, "TERMINATE CHARACTER IS HERE, TOTAL ARRAY RECEIVED: " + bytesReceived.toString());
-//                        Log.d(TAG, "IT HAS LENGTH: " + bytesReceived.size());
-//                        if (listener != null) {
-//                            Log.d(TAG, "Received in total (excluding flags): " + String.valueOf(receiveCounter - 1));
-//                            Log.d(TAG, Arrays.toString(toByteArray(bytesReceived)));
-//                            listener.onArduinoMessage(toByteArray(bytesReceived.subList(0, bytesReceived.size() - 3)));
-//                            Log.d(TAG, "sent to listener");
-//                            bytesReceived.clear();
-//                            receiveCounter = 0;
-//                        }
-//                    }
-//
-//                } else {
-//                    isFlagDetected = false;
-//                    flagDetectCounter = 0;
-//                }
-//            }
-//
-//        }
+                        else if(counter == 4){
+                            lenImage = ByteBuffer.wrap(lenImageArr).order(ByteOrder.LITTLE_ENDIAN).getInt();
+                            Log.d(TAG, "The length of image: " + lenImage);
+                            bufferingInProgress = true;
+                        }
+
+                    }
+                    else if(MESSENGER_STATE == messengerState.text_state){
+                        if (counter == 1){
+                            lentext = (int) bytes[1];
+                            Log.d(TAG, "The length of the text is: " + lentext);
+                            bufferingInProgress = true;
+                        }
+                    }
+                    else if(MESSENGER_STATE == messengerState.ranging_state){
+                        if (counter == 1 && ((char) bytes[counter] == 'S')){
+                            // distance can be found at index 3 to 6.
+                            bufferingInProgress = true;
+                        }
+                    }
+                    counter ++;
+                    }
+                }
+
+             else if (MESSENGER_STATE == messengerState.text_state && bufferingInProgress){
+                 for (int i=0; i < bytes.length; i++){
+                     if ((char) bytes[i] == '>'){
+                         // the end of the array is found.
+                         bufferingInProgress = false;
+                     }
+                 }
+            }
+            }
     }
 
     public boolean isOpened() {

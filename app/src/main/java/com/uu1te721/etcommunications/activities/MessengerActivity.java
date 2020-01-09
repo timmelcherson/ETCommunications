@@ -121,6 +121,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
     @Override
     protected void onStart() {
         mArduino.setArduinoListener(this);
+        mArduino.send("ST1".getBytes());
         super.onStart();
     }
 
@@ -145,13 +146,13 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
             switch (flag) {
 
                 case 'i':
-                    byte[] bbi = Arrays.copyOfRange(bytes, 5, (int) bytes.length-3);
+                    byte[] bbi = Arrays.copyOfRange(bytes, 5, (int) bytes.length-4);
                     receiveImage(bbi);
                     break;
 
                 case 't':
 
-                    byte[] bbt = Arrays.copyOfRange(bytes, 1, (int) bytes.length-3);
+                    byte[] bbt = Arrays.copyOfRange(bytes, 1, (int) bytes.length-4);
                     receiveMessage(bbt);
                     break;
 
@@ -192,8 +193,8 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         byte[] arrayForTransmission = addTransmissionFlagToByteArray(TRANSMISSION_FLAG_TEXT, msg.getBytes()); //'t' + msg + '>>>'
 
         if ((char) arrayForTransmission[0] == 't') {
+            Log.d(TAG, "Sending a text");
             mArduino.send(arrayForTransmission);
-            Log.d(TAG, "sent this msg: " + Arrays.toString(arrayForTransmission));
             MessageCard msgCard = new MessageCard(msg, "sent");
             mMessageCardList.add(msgCard);
             mMessengerAdapter.notifyDataSetChanged();
@@ -219,6 +220,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
         Log.d(TAG, "sendPhoto: LOGGING TRANSMISSION BYTES, size of picture: " + multimediaMessage.getByteCount());
 
         if ((char) arrayForTransmission[0] == 'i') {
+            Log.d(TAG, "Sending an image");
             mArduino.send(arrayForTransmission);
             MessageCard card = new MessageCard(multimediaMessage, currentPhotoPath, "sent");
             mMessageCardList.add(card);

@@ -316,7 +316,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     public void setBuddyAngle(View view, double angle) {
-        Log.d(TAG, "Setting buddy angle to: " + angle + " degrees");
+       // Log.d(TAG, "Setting buddy angle to: " + angle + " degrees");
         double radians = Math.toRadians(angle);
         view.setX((float) (displayWidth / 2) - (float) (view.getWidth() / 2) + (float) Math.cos(radians) * ((float) circleWidth / 2));
         view.setY((float) (displayHeight / 2) - (float) (view.getHeight()) / 2 - (float) Math.sin(radians) * ((float) circleHeight / 2));
