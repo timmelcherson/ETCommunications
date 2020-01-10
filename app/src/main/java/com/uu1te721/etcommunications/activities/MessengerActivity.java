@@ -160,16 +160,18 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
                 isFlagSet = true;
             }
 
+            byte[] bbt = Arrays.copyOfRange(bytes, 1, (int) bytes.length);
+
             switch (flag) {
 
                 case 'i':
-                    byte[] bbi = Arrays.copyOfRange(bytes, 5, (int) bytes.length);
-                    receiveImage(bbi);
+//                    byte[] bbi = Arrays.copyOfRange(bytes, 1, (int) bytes.length);
+                    receiveImage(bbt);
                     break;
 
                 case 't':
 
-                    byte[] bbt = Arrays.copyOfRange(bytes, 2, (int) bytes.length);
+//                    byte[] bbt = Arrays.copyOfRange(bytes, 1, (int) bytes.length);
                     receiveMessage(bbt);
                     break;
 
@@ -186,7 +188,6 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
 
     @Override
     public void onArduinoOpened() {
-        Toast.makeText(this, "Arduino opened in Messenger Activity", Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -217,6 +218,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
             mMessageCardList.add(msgCard);
             mMessengerAdapter.notifyDataSetChanged();
             lm.smoothScrollToPosition(mMessageFeed, null, mMessageCardList.size() - 1);
+            arrayForTransmission = null;
             mWriteMessageEt.setText("");
             hideSoftKeyboard();
         } else {
@@ -244,6 +246,7 @@ public class MessengerActivity extends AppCompatActivity implements View.OnClick
             mMessageCardList.add(card);
             mMessengerAdapter.notifyDataSetChanged();
             lm.smoothScrollToPosition(mMessageFeed, null, mMessageCardList.size() - 1);
+            arrayForTransmission = null;
             hideSoftKeyboard();
 //            receiveImage(byteArray);
         } else {

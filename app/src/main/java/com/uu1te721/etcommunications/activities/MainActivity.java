@@ -163,9 +163,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onStart() {
         Log.d(TAG, "Main onStart, set arduino listener");
         super.onStart();
+        if (!viewBuddyList.isEmpty())
+            viewBuddyList.clear();
         mArduino.send("ST0".getBytes());
         mArduino.setArduinoListener(this);
-        mArduino.resetArduinoState();
     }
 
     @Override
@@ -283,11 +284,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         } else if (bytes[0] == 'D' && bytes[1] == 'S') {
             String str = "";
+            Log.d(TAG, "DS detected");
             for (int i = 3; i < bytes.length; i++) {
                 str += (char) bytes[i];
             }
             if (viewBuddyList.isEmpty()) {
+                Log.d(TAG, "Buddy list empty, adding buddy");
                 viewBuddyList.add(initializeNewBuddy());
+            }
+            else {
+                Log.d(TAG, "Buddy list not empty");
             }
             updateDistanceToBuddy(str);
         }
@@ -333,7 +339,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onArduinoOpened() {
         /* GET device ID */
-        Toast.makeText(this, "Arduino opened in Main Activity", Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -347,7 +352,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mArduino.close();
         Toast.makeText(this, "Main Activity destroyed", Toast.LENGTH_SHORT).show();
         super.onDestroy();
-
+        viewBuddyList.clear();
+        buddyList.clear();
     }
-
 }

@@ -45,7 +45,18 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
 
     private static final int DEFAULT_BAUD_RATE = 9600;
     private static final byte DEFAULT_DELIMITER = '\n';
-
+    private boolean isStartFlagDetected = false;
+    private boolean isEndFlagDetected = false;
+    private int flagDetectCounter = 0;
+    private boolean rangingFlagDetected = false;
+    public enum messengerState {
+        no_state,
+        ranging_state,
+        text_state,
+        image_state
+    }
+    private int previousSize = 0;
+    private messengerState MESSENGER_STATE = messengerState.no_state;
 
     public CustomArduino(Context context, int baudRate) {
         init(context, baudRate);
@@ -124,30 +135,36 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
     }
 
     public void resetArduinoState() {
-        Log.d(TAG, "resetArduinoState called in customarduino, setting flag to false");
+        Log.d(TAG, "resetArduinoState called in customarduino from context: " + context);
+        bytesReceived.clear();
         isStartFlagDetected = false;
         isEndFlagDetected = false;
         flagDetectCounter = 0;
         previousSize = 0;
         MESSENGER_STATE = messengerState.no_state;
+    }
+
+    public void setArduinoRangingState() {
+        MESSENGER_STATE = messengerState.ranging_state;
         bytesReceived.clear();
+        isStartFlagDetected = false;
     }
 
     public void send(byte[] bytes) {
 
         if (serialPort != null) {
             int index = 0;
-            int framesize = 127 - 11;
+            int framesize = 111 - 11;
 
             Log.d(TAG, "SENDING array of size: " + bytes.length);
             while (bytes.length - index > framesize) {
 
-                byte[] partialArray = Arrays.copyOfRange(bytes, index, index + framesize - 1);
+                byte[] partialArray = Arrays.copyOfRange(bytes, index, index + framesize);
 
-                ByteBuffer partialArrWithCarriageReturn = allocate(partialArray.length + 1);
-                partialArrWithCarriageReturn.put(partialArray);
-                partialArrWithCarriageReturn.put((byte) '\r');
-                serialPort.write(partialArrWithCarriageReturn.array());
+//                ByteBuffer partialArrWithCarriageReturn = allocate(partialArray.length + 1);
+//                partialArrWithCarriageReturn.put(partialArray);
+//                partialArrWithCarriageReturn.put((byte) '\r');
+                serialPort.write(partialArray);
                 index = index + framesize;
 
                 try {
@@ -163,6 +180,7 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
             Log.d(TAG, Arrays.toString(finalArray));
             Log.d(TAG, "last Element in array is:" + finalArray[finalArray.length - 1]);
             serialPort.write(finalArray);
+            resetArduinoState();
         }
     }
 
@@ -269,72 +287,63 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
         return array;
     }
 
-    int receiveCounter = 0;
-
-    boolean isStartFlagDetected = false;
-    boolean isEndFlagDetected = false;
-    int flagDetectCounter = 0;
-
-    int counter = 1;
-
-    boolean bufferingInProgress = false;
-
-    public enum messengerState {
-        no_state,
-        ranging_state,
-        text_state,
-        image_state
-    }
-
-
-    int lentext = 0;
-    int lenImage = 0;
-    byte[] lenImageArr = new byte[4];
-    byte[] distanceArr = new byte[4];
-    int previousSize = 0;
-
-
-    messengerState MESSENGER_STATE = messengerState.no_state;
 
     @Override
     public void onReceivedData(byte[] bytes) {
 
 
         if (bytes.length > 0) {
-            Log.d(TAG, "Context of: " + mContext + ", onReceived data: " + Arrays.toString(bytes));
+            Log.d(TAG, "onReceived data: " + Arrays.toString(bytes));
             //Log.d(TAG, "Some frame received. Length is: " + String.valueOf(bytes.length));
             bytesReceived.addAll(toByteList(bytes));
 
+            Log.d(TAG, "is flag set: " + isStartFlagDetected);
             if (!isStartFlagDetected) {
                 // LOOK FOR STATE CHANGES.
-                if ((char) bytes[0] == 't') {
-                    // a text is found. If no state is initiated. Start text state.
+                Log.d(TAG, "bytesReceived: " + bytesReceived);
+                if (bytesReceived.get(0) == 't') {
+                    Log.d(TAG, "Text state set");
                     MESSENGER_STATE = messengerState.text_state;
                     isStartFlagDetected = true;
-                    Log.d(TAG, "Buffering a new text message");
-                } else if ((char) bytes[0] == 'i') {
+                } else if (bytesReceived.get(0) == 'i') {
+                    Log.d(TAG, "Image state set");
                     MESSENGER_STATE = messengerState.text_state;
                     isStartFlagDetected = true;
-                    Log.d(TAG, "Buffering a new image message");
-                } else if ((char) bytes[0] == 'D') {
-                    MESSENGER_STATE = messengerState.ranging_state;
-                    isStartFlagDetected = true;
+                } else if (bytesReceived.size() > 1) {
+
+                    for (int i = 0; i < bytesReceived.size(); i++) {
+                        if (rangingFlagDetected && bytesReceived.get(i) == 'S') {
+                            Log.d(TAG, "Ranging state set");
+                            bytesReceived = bytesReceived.subList(i - 1, bytesReceived.size());
+                            MESSENGER_STATE = messengerState.ranging_state;
+                            isStartFlagDetected = true;
+                        }
+                        else {
+                            rangingFlagDetected = false;
+                        }
+                        if (bytesReceived.get(i) == 'D') {
+                            rangingFlagDetected = true;
+                            Log.d(TAG, "FOUND D");
+                        }
+                    }
                 }
             }
 
             if (MESSENGER_STATE == messengerState.image_state || MESSENGER_STATE == messengerState.text_state) {
-                for (int i = previousSize; i < bytesReceived.size(); i++) {
+//                Log.d(TAG, "Counting from: " + previousSize + " to: " + String.valueOf(bytesReceived.size()));
+                for (int i = 0; i < bytesReceived.size(); i++) {
                     if (bytesReceived.get(i) == '>') {
                         isEndFlagDetected = true;
                         flagDetectCounter++;
                         Log.d(TAG, "Detected flag: " + flagDetectCounter + " times");
 
-                        if (flagDetectCounter >= 2) {
+                        if (flagDetectCounter >= 3) {
                             Log.d(TAG, "Sending to listener: " + bytesReceived.subList(0, bytesReceived.size() - 3));
                             listener.onArduinoMessage(toByteArray(bytesReceived.subList(0, bytesReceived.size() - 3)));
                             resetArduinoState();
                         }
-                    } else {
+                    }
+                    if (isEndFlagDetected && bytesReceived.get(i) != '>' && i != bytesReceived.size()-1){
                         Log.d(TAG, "False alarm, keep working");
                         isEndFlagDetected = false;
                         flagDetectCounter = 0;
@@ -342,11 +351,11 @@ public class CustomArduino implements UsbSerialInterface.UsbReadCallback {
                 }
                 previousSize = bytes.length;
             } else if (MESSENGER_STATE == messengerState.ranging_state) {
-                if (bytesReceived.size() >= 11) {
+                if (bytesReceived.size() >= 23) {
                     listener.onArduinoMessage(toByteArray(bytesReceived.subList(0, 7)));
                     Log.d(TAG, "sent to listener: " + bytesReceived.subList(0, 7));
                     Log.d(TAG, "bytesReceived before sublist: " + bytesReceived);
-                    bytesReceived = bytesReceived.subList(9, bytesReceived.size() - 1);
+                    bytesReceived = bytesReceived.subList(12, bytesReceived.size());
                     Log.d(TAG, "bytesReceived after sublist: " + bytesReceived);
                 }
             }
